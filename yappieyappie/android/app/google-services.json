@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1064723019722",
+    "project_id": "talkietalkie-vp1413",
+    "storage_bucket": "talkietalkie-vp1413.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1064723019722:android:070f81aabc306560af4133",
+        "android_client_info": {
+          "package_name": "com.vp1413.yappie"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBxumDmIVIFdKJNdSEnh3-oCRhn_jU6new"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
