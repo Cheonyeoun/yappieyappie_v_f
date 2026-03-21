@@ -1,0 +1,25 @@
+## YappieYappie
+
+This is a project for creating a space for myself and my people where we can chat and .
+
+The final structure would be something similar to the below one:
+
+        Yappie_F/
+
+├── lib/
+│ ├── core/ # constants, theme, extensions, utils
+│ ├── features/
+│ │ ├── auth/ # login, signup, guest
+│ │ ├── chat/ # private chat screen + services
+│ │ ├── chat_list/ # recent chats list
+│ │ ├── search/ # Instagram-style search
+│ │ ├── profile/ # profile + logout
+│ │ └── home/ # bottom navigation shell
+│ ├── models/ # UserModel, MessageModel, ChatModel
+│ ├── services/ # AuthService, FirestoreService, ChatService
+│ ├── providers/ # Riverpod providers (modern & production-ready)
+│ ├── firebase_options.dart
+│ └── main.dart
+├── assets/
+├── android/ & ios/
+└── pubspec.yaml
