@@ -77,15 +77,33 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 children: [
                   // --- BRANDING SECTION ---
                   Container(
-                    padding: const EdgeInsets.all(20),
+                    padding:
+                        const EdgeInsets.all(10), // Reduced padding for the GIF
                     decoration: BoxDecoration(
                       color: Colors.blueAccent.withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.forum_rounded,
-                        size: 80, color: Colors.blueAccent),
+                    child: ClipOval(
+                      child: Image.network(
+                        'https://media.tenor.com/N5XLu7zrh8kAAAAM/cat-catfish.gif',
+                        width: 120, // Adjusted size for the GIF
+                        height: 120,
+                        fit: BoxFit.cover,
+                        // Placeholder while the GIF loads
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return const SizedBox(
+                            width: 120,
+                            height: 120,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          );
+                        },
+                      ),
+                    ),
                   ),
+
                   const SizedBox(height: 24),
+
                   Text(
                     AppConstants.appName,
                     style: const TextStyle(
