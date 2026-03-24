@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yappieyappie/core/constants/app_constants.dart';
-import 'package:yappieyappie/services/auth_service.dart';
+import 'package:yappieyappie/services/auth/auth_service.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
