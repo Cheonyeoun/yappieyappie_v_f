@@ -12,15 +12,18 @@ class AuthScreen extends ConsumerStatefulWidget {
 
 class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
   bool isLogin = true;
   bool isLoading = false;
+  bool showPassword = false;
   String? errorMessage;
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -38,19 +41,19 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       final authService = ref.read(authServiceProvider);
 
       if (isLogin) {
-        await authService.signInWithEmail(
-          email: _emailController.text.trim(),
+        // Log in with Email OR Username
+        await authService.signIn(
+          identifier: _emailController.text.trim(),
           password: _passwordController.text,
         );
       } else {
-        // Sign Up - This will trigger the auto-username generation in the service
-        await authService.signUpWithEmail(
+        // Sign up with Name, Email, Password
+        await authService.signUp(
+          name: _nameController.text.trim(),
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
       }
-      // Note: go_router usually handles the redirect to /home automatically
-      // by listening to the authStateChanges stream.
     } catch (e) {
       setState(() => errorMessage = e.toString().replaceAll('Exception: ', ''));
     } finally {
@@ -60,7 +63,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Using a dark theme vibe for YappieYappie
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -73,7 +75,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Branding Section
+                  // --- BRANDING SECTION ---
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
@@ -87,11 +89,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   Text(
                     AppConstants.appName,
                     style: const TextStyle(
-                      fontSize: 36,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -1,
-                    ),
+                        fontSize: 36,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -1),
                   ),
+                  // The Quote
                   const Text(
                     "Private Circle • No Noise",
                     style: TextStyle(
@@ -99,57 +101,73 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   ),
                   const SizedBox(height: 50),
 
-                  // Input Fields
+                  // --- INPUT FIELDS ---
+
+                  // Name Field (Signup only)
+                  if (!isLogin) ...[
+                    TextFormField(
+                      controller: _nameController,
+                      decoration: InputDecoration(
+                        labelText: 'Full Name',
+                        prefixIcon: const Icon(Icons.person_outline_rounded),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(15)),
+                      ),
+                      validator: (value) => (value == null || value.isEmpty)
+                          ? 'Name is mandatory'
+                          : null,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // Email or Username Field
                   TextFormField(
                     controller: _emailController,
                     decoration: InputDecoration(
-                      labelText: 'Email Address',
+                      labelText:
+                          isLogin ? 'Email or Username' : 'Email Address',
                       prefixIcon: const Icon(Icons.alternate_email_rounded),
                       border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(15)),
                     ),
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (value) =>
-                        (value == null || !value.contains('@'))
-                            ? 'Enter a valid email'
-                            : null,
+                    validator: (value) => (value == null || value.isEmpty)
+                        ? 'Required field'
+                        : null,
                   ),
                   const SizedBox(height: 16),
+
+                  // Password Field with Visibility Toggle
                   TextFormField(
                     controller: _passwordController,
+                    obscureText: !showPassword,
                     decoration: InputDecoration(
                       labelText: 'Password',
                       prefixIcon: const Icon(Icons.lock_outline_rounded),
+                      suffixIcon: IconButton(
+                        icon: Icon(showPassword
+                            ? Icons.visibility_rounded
+                            : Icons.visibility_off_rounded),
+                        onPressed: () =>
+                            setState(() => showPassword = !showPassword),
+                      ),
                       border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(15)),
                     ),
-                    obscureText: true,
                     validator: (value) => (value == null || value.length < 6)
-                        ? 'Min 6 characters required'
+                        ? 'Min 6 characters'
                         : null,
                   ),
 
-                  // Error Message Display
                   if (errorMessage != null) ...[
                     const SizedBox(height: 20),
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.redAccent.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        errorMessage!,
+                    Text(errorMessage!,
                         style: const TextStyle(
-                            color: Colors.redAccent, fontSize: 13),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
+                            color: Colors.redAccent, fontSize: 13)),
                   ],
 
                   const SizedBox(height: 30),
 
-                  // Action Button
+                  // --- ACTION BUTTONS ---
                   isLoading
                       ? const CircularProgressIndicator()
                       : ElevatedButton(
@@ -171,7 +189,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
                   const SizedBox(height: 16),
 
-                  // Toggle Button
                   TextButton(
                     onPressed: () => setState(() {
                       isLogin = !isLogin;
