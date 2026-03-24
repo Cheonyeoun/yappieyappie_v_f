@@ -1,45 +1,39 @@
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Added this!
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import 'package:yappieyappie/core/theme/app_theme.dart';
-import 'package:yappieyappie/features/auth/presentation/auth_screen.dart';
-import 'package:yappieyappie/features/home/presentation/home_screen.dart';
+import 'services/router/app_router.dart'; // Adjust path to your router file
+import 'core/theme/app_theme.dart'; // Adjust path to your theme
 import 'firebase_options.dart';
+import 'core/utils/app_lifecycle_observer.dart'; // Your Observer file
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  runApp(const ProviderScope(child: YappieYappieApp()));
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  runApp(
+    const ProviderScope(
+      child: YappieYappieApp(),
+    ),
+  );
 }
 
-class YappieYappieApp extends StatelessWidget {
+class YappieYappieApp extends ConsumerWidget {
   const YappieYappieApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final router = GoRouter(
-      initialLocation: '/auth',
-      routes: [
-        GoRoute(path: '/auth', builder: (context, state) => const AuthScreen()),
-        GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
-      ],
-      redirect: (context, state) {
-        final isLoggedIn = FirebaseAuth.instance.currentUser != null;
-        final goingToAuth = state.matchedLocation == '/auth';
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(routerProvider);
 
-        if (!isLoggedIn && !goingToAuth) return '/auth';
-        if (isLoggedIn && goingToAuth) return '/home';
-        return null;
-      },
-    );
-
-    return MaterialApp.router(
-      title: 'YappieYappie',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
-      routerConfig: router,
+    return AppLifecycleObserver(
+      // <--- THIS FIXES THE ONLINE BUG
+      child: MaterialApp.router(
+        title: 'YappieYappie',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.darkTheme,
+        routerConfig: router, // <--- THIS FIXES THE ROUTING BUG
+      ),
     );
   }
 }

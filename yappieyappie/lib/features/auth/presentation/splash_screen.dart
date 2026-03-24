@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:yappieyappie/services/auth_service.dart';
+import 'package:yappieyappie/services/auth/auth_service.dart';
 import 'package:go_router/go_router.dart';
 
 class SplashScreen extends ConsumerWidget {
