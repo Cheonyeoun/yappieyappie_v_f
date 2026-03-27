@@ -1,13 +1,11 @@
-// features/profile/presentation/profile_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yappieyappie/models/user_model.dart';
+import 'package:yappieyappie/services/auth/auth_service.dart';
 
 class ProfileScreen extends ConsumerWidget {
-  final UserModel?
-      user; // Pass null for own profile, or UserModel for other user
+  final UserModel? user;
 
   const ProfileScreen({super.key, this.user});
 
@@ -16,7 +14,6 @@ class ProfileScreen extends ConsumerWidget {
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
     final isOwnProfile = user == null || (user!.uid == currentUid);
 
-    // If user is not passed, we fallback to something "empty" but must come from elsewhere
     final displayUser = user ??
         UserModel(
           uid: currentUid ?? '',
@@ -31,7 +28,7 @@ class ProfileScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.more_vert),
-            onPressed: () => _showMenu(context, isOwnProfile, displayUser),
+            onPressed: () => _showMenu(context, ref, isOwnProfile, displayUser),
           ),
         ],
       ),
@@ -40,8 +37,6 @@ class ProfileScreen extends ConsumerWidget {
         child: Column(
           children: [
             const SizedBox(height: 40),
-
-            // Profile Image
             CircleAvatar(
               radius: 80,
               backgroundColor: Colors.grey[800],
@@ -54,24 +49,16 @@ class ProfileScreen extends ConsumerWidget {
                   ? const Icon(Icons.person, size: 90, color: Colors.white70)
                   : null,
             ),
-
             const SizedBox(height: 24),
-
-            // Name
             Text(
               displayUser.name.isEmpty ? "No Name" : displayUser.name,
               style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
             ),
-
-            // Username
             Text(
               "@${displayUser.username}",
               style: const TextStyle(fontSize: 18, color: Colors.grey),
             ),
-
             const SizedBox(height: 16),
-
-            // Online Status
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -89,20 +76,14 @@ class ProfileScreen extends ConsumerWidget {
                 ),
               ],
             ),
-
             const SizedBox(height: 40),
-
-            // Bio
             if (displayUser.bio != null && displayUser.bio!.isNotEmpty)
               Text(
                 displayUser.bio!,
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 16, height: 1.6),
               ),
-
             const Spacer(),
-
-            // Message Button - Only for other users
             if (!isOwnProfile)
               SizedBox(
                 width: double.infinity,
@@ -112,16 +93,13 @@ class ProfileScreen extends ConsumerWidget {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                            "Messaging @${displayUser.username} (coming soon)"),
+                          "Messaging @${displayUser.username} (coming soon)",
+                        ),
                       ),
                     );
                   },
                   icon: const Icon(Icons.chat_bubble_outline),
                   label: const Text("Message", style: TextStyle(fontSize: 17)),
-                  style: ElevatedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
                 ),
               ),
           ],
@@ -130,7 +108,12 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  void _showMenu(BuildContext context, bool isOwnProfile, UserModel user) {
+  void _showMenu(
+    BuildContext context,
+    WidgetRef ref,
+    bool isOwnProfile,
+    UserModel user,
+  ) {
     showModalBottomSheet(
       context: context,
       builder: (context) => SafeArea(
@@ -149,7 +132,8 @@ class ProfileScreen extends ConsumerWidget {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                        content: Text('Friend request feature coming soon')),
+                      content: Text('Friend request feature coming soon'),
+                    ),
                   );
                 },
               ),
@@ -166,11 +150,13 @@ class ProfileScreen extends ConsumerWidget {
               ),
               ListTile(
                 leading: const Icon(Icons.logout, color: Colors.red),
-                title:
-                    const Text('Logout', style: TextStyle(color: Colors.red)),
+                title: const Text(
+                  'Logout',
+                  style: TextStyle(color: Colors.red),
+                ),
                 onTap: () async {
                   Navigator.pop(context);
-                  await FirebaseAuth.instance.signOut();
+                  await ref.read(authServiceProvider).signOut();
                 },
               ),
             ],

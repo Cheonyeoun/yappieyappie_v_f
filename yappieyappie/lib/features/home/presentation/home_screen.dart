@@ -6,6 +6,8 @@ import 'package:yappieyappie/features/profile/presentation/profile_screen.dart';
 import 'package:yappieyappie/features/home/presentation/widgets/bottom_nav_bar.dart';
 import 'package:yappieyappie/models/user_model.dart';
 import 'package:yappieyappie/services/profile/user_service.dart';
+import 'package:yappieyappie/features/search/presentation/search_screen.dart';
+import 'package:yappieyappie/services/auth/auth_service.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -21,7 +23,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
 
-    // 🔥 SAFETY: prevent null crash
+    // Prevent rendering when user is not authenticated
     if (user == null) {
       return const Scaffold(
         body: Center(child: Text("User not logged in")),
@@ -29,7 +31,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
 
     final screens = [
-      // 🔹 Yapp Tab (your current Firestore UI)
+      // User info tab
       StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance
             .collection('users')
@@ -45,6 +47,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           }
 
           final data = snapshot.data!.data() as Map<String, dynamic>;
+
           final username = data['username'] ?? 'unknown';
           final email = data['email'] ?? 'no-email';
           final isOnline = data['isOnline'] ?? false;
@@ -55,21 +58,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("USER IDENTITY",
-                    style: TextStyle(
-                        color: Colors.grey, fontWeight: FontWeight.bold)),
+                const Text(
+                  "USER IDENTITY",
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 8),
-                Text("Username: @$username",
-                    style: const TextStyle(
-                        fontSize: 22, fontWeight: FontWeight.bold)),
+                Text(
+                  "Username: @$username",
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 Text("Email: $email"),
                 const SizedBox(height: 30),
-                const Text("GHOST LOG DATA ☠️",
-                    style: TextStyle(
-                        color: Colors.blueAccent, fontWeight: FontWeight.bold)),
+                const Text(
+                  "GHOST LOG DATA",
+                  style: TextStyle(
+                    color: Colors.blueAccent,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 8),
-                _statusTile("Is Online", isOnline.toString(), Icons.circle,
-                    isOnline ? Colors.green : Colors.grey),
+                _statusTile(
+                  "Is Online",
+                  isOnline.toString(),
+                  Icons.circle,
+                  isOnline ? Colors.green : Colors.grey,
+                ),
                 _statusTile(
                   "Visibility Toggle",
                   showOnline ? "Visible" : "Hidden",
@@ -78,8 +97,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
                 const Spacer(),
                 const Center(
-                  child: Text("M2 Milestone: Auth & Sync Complete ✅",
-                      style: TextStyle(color: Colors.grey)),
+                  child: Text(
+                    "M2 Milestone: Auth & Sync Complete",
+                    style: TextStyle(color: Colors.grey),
+                  ),
                 ),
               ],
             ),
@@ -87,16 +108,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         },
       ),
 
-      // 🔹 Search Tab
-      const Center(
-        child: Text(
-          "Search Tab\n(Coming Soon)",
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 4),
-        ),
-      ),
+      // Search tab
+      const SearchScreen(),
 
-      // 🔹 Profile Tab (updated to use real UserModel)
+      // Profile tab
       FutureBuilder<UserModel>(
         future: UserService().getUser(user.uid),
         builder: (context, snapshot) {
@@ -116,7 +131,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("YappieYappie"),
+        title: const Text("YappieYappie Circle"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout_rounded),
+            onPressed: () => ref.read(authServiceProvider).signOut(),
+          ),
+        ],
       ),
       body: screens[currentIndex],
       bottomNavigationBar: BottomNavBar(
@@ -135,8 +156,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       contentPadding: EdgeInsets.zero,
       leading: Icon(icon, color: color, size: 20),
       title: Text(title),
-      trailing:
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+      trailing: Text(
+        value,
+        style: const TextStyle(fontWeight: FontWeight.bold),
+      ),
     );
   }
 }
