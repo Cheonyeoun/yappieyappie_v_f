@@ -78,7 +78,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 const Text(
                   "GHOST LOG DATA",
                   style: TextStyle(
-                    color: Colors.blueAccent,
+                    color: const Color.fromARGB(255, 255, 140, 0),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -93,7 +93,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   "Visibility Toggle",
                   showOnline ? "Visible" : "Hidden",
                   Icons.visibility,
-                  Colors.blue,
+                  const Color.fromARGB(255, 125, 166, 183),
                 ),
                 const Spacer(),
                 const Center(

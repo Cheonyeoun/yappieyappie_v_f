@@ -20,7 +20,7 @@ class BottomNavBar extends StatelessWidget {
       currentIndex: currentIndex,
       onTap: onTap,
       backgroundColor: const Color(0xFF0A0A0A),
-      selectedItemColor: Colors.blueAccent,
+      selectedItemColor: const Color.fromARGB(255, 255, 140, 0),
       unselectedItemColor: Colors.grey,
       type: BottomNavigationBarType.fixed,
       items: [
@@ -28,7 +28,7 @@ class BottomNavBar extends StatelessWidget {
         const BottomNavigationBarItem(
           icon: Icon(Icons.send_outlined),
           activeIcon: Icon(Icons.send),
-          label: 'Yapp',
+          label: 'Talkies',
         ),
 
         // Search Tab
