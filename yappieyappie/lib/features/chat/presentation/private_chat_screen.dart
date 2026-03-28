@@ -1,102 +1,144 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:yappieyappie/models/user_model.dart';
+import 'package:yappieyappie/services/profile/user_provider.dart';
 
-class PrivateChatScreen extends StatefulWidget {
+class PrivateChatScreen extends ConsumerStatefulWidget {
   final UserModel otherUser;
 
   const PrivateChatScreen({super.key, required this.otherUser});
 
   @override
-  State<PrivateChatScreen> createState() => _PrivateChatScreenState();
+  ConsumerState<PrivateChatScreen> createState() => _PrivateChatScreenState();
 }
 
-class _PrivateChatScreenState extends State<PrivateChatScreen> {
+class _PrivateChatScreenState extends ConsumerState<PrivateChatScreen> {
   final TextEditingController _messageController = TextEditingController();
-  final ScrollController _scrollController = ScrollController();
 
+  // Generates a unique chat room ID based on both users' IDs
+  // Sorting ensures same ID for both users (A_B == B_A)
   String get chatRoomId {
-    final currentUid = FirebaseAuth.instance.currentUser!.uid;
-    List<String> ids = [currentUid, widget.otherUser.uid];
-    ids.sort();
+    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final ids = [currentUid, widget.otherUser.uid]..sort();
     return ids.join('_');
   }
 
-  void _sendMessage() async {
+  @override
+  void initState() {
+    super.initState();
+
+    // Ensures unread messages are cleared AFTER UI loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _markMessagesAsRead();
+    });
+  }
+
+  // Reset unread count when this chat is opened
+  Future<void> _markMessagesAsRead() async {
+    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUid == null) return;
+
+    await FirebaseFirestore.instance.collection('chats').doc(chatRoomId).set({
+      'unreadCounts': {
+        currentUid: 0,
+      }
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
+
+    // Prevent sending empty messages
     if (text.isEmpty) return;
 
-    final currentUser = FirebaseAuth.instance.currentUser!;
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
 
-    final messageData = {
+    final chatRef =
+        FirebaseFirestore.instance.collection('chats').doc(chatRoomId);
+
+    // Add message to subcollection
+    await chatRef.collection('messages').add({
       'text': text,
       'senderId': currentUser.uid,
-      'senderName': 'You', // We can improve this later
       'timestamp': FieldValue.serverTimestamp(),
-    };
-
-    await FirebaseFirestore.instance
-        .collection('chats')
-        .doc(chatRoomId)
-        .collection('messages')
-        .add(messageData);
-
-    _messageController.clear();
-
-    // Scroll to bottom
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
     });
+
+    // Update chat metadata for list screen
+    await chatRef.set({
+      'lastMessage': text,
+      'lastMessageTime': FieldValue.serverTimestamp(),
+      'lastSenderId': currentUser.uid,
+
+      // Ensure both users are part of the chat
+      'participants': [currentUser.uid, widget.otherUser.uid],
+
+      // Keeps unread count separately for each user
+      'unreadCounts': {
+        currentUser.uid: 0,
+        widget.otherUser.uid: FieldValue.increment(1),
+      },
+    }, SetOptions(merge: true));
+
+    // Clear input field after sending
+    _messageController.clear();
   }
 
   @override
   Widget build(BuildContext context) {
+    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+
+    // Listen to real-time user data
+    final userAsync = ref.watch(userStreamProvider(widget.otherUser.uid));
+
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundImage: widget.otherUser.profileimg != null &&
-                      widget.otherUser.profileimg!.isNotEmpty
-                  ? NetworkImage(widget.otherUser.profileimg!)
-                  : null,
-              child: (widget.otherUser.profileimg == null ||
-                      widget.otherUser.profileimg!.isEmpty)
-                  ? const Icon(Icons.person, size: 24)
-                  : null,
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(widget.otherUser.name,
-                    style: const TextStyle(fontSize: 18)),
-                Text(
-                  widget.otherUser.isOnline ? "Online" : "Offline",
-                  style: TextStyle(
-                    fontSize: 13,
-                    color:
-                        widget.otherUser.isOnline ? Colors.green : Colors.grey,
+        title: userAsync.when(
+          data: (user) => Row(
+            children: [
+              // User profile image
+              CircleAvatar(
+                radius: 20,
+                backgroundImage:
+                    user.profileimg != null && user.profileimg!.isNotEmpty
+                        ? NetworkImage(user.profileimg!)
+                        : null,
+                child: (user.profileimg == null || user.profileimg!.isEmpty)
+                    ? const Icon(Icons.person)
+                    : null,
+              ),
+              const SizedBox(width: 12),
+
+              // User name + online status
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(user.name.isNotEmpty ? user.name : 'User'),
+
+                  // NOTE: Controlled by user preference (showOnlineStatus)
+                  Text(
+                    user.showOnlineStatus
+                        ? (user.isOnline ? "Online" : "Offline")
+                        : "",
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: user.isOnline ? Colors.green : Colors.grey,
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
+          loading: () => const Text("Loading..."),
+          error: (_, __) => const Text("User"),
         ),
-        elevation: 0,
       ),
       body: Column(
         children: [
-          // Messages Area
+          // Messages list (latest at bottom visually)
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -106,63 +148,58 @@ class _PrivateChatScreenState extends State<PrivateChatScreen> {
                   .orderBy('timestamp', descending: true)
                   .snapshots(),
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
+                // Show loading state
+                if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
-                }
-
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(
-                    child: Text("No messages yet. Start yapping! 💬"),
-                  );
                 }
 
                 final messages = snapshot.data!.docs;
 
+                // If no messages yet
+                if (messages.isEmpty) {
+                  return const Center(child: Text("No messages yet"));
+                }
+
                 return ListView.builder(
-                  controller: _scrollController,
-                  reverse: true,
+                  reverse: true, // Ensures newest messages appear at bottom
                   padding: const EdgeInsets.all(16),
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
                     final msg = messages[index].data() as Map<String, dynamic>;
-                    final isMe = msg['senderId'] ==
-                        FirebaseAuth.instance.currentUser!.uid;
+
+                    // Check if message is sent by current user
+                    final isMe = msg['senderId'] == currentUid;
+
+                    // Format timestamp safely
+                    final timestamp = msg['timestamp'];
+                    final time = timestamp != null
+                        ? DateFormat('hh:mm a')
+                            .format((timestamp as Timestamp).toDate())
+                        : '';
 
                     return Align(
                       alignment:
                           isMe ? Alignment.centerRight : Alignment.centerLeft,
                       child: Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: isMe ? Colors.blueAccent : Colors.grey[800],
-                          borderRadius: BorderRadius.only(
-                            topLeft: const Radius.circular(16),
-                            topRight: const Radius.circular(16),
-                            bottomLeft:
-                                isMe ? const Radius.circular(16) : Radius.zero,
-                            bottomRight:
-                                isMe ? Radius.zero : const Radius.circular(16),
-                          ),
+                          color:
+                              isMe ? Colors.blueAccent : Colors.grey.shade800,
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              msg['text'],
-                              style: const TextStyle(fontSize: 16),
-                            ),
+                            // Message text
+                            Text(msg['text'] ?? ''),
+
                             const SizedBox(height: 4),
+
+                            // Message time
                             Text(
-                              msg['timestamp'] != null
-                                  ? DateFormat('hh:mm a').format(
-                                      (msg['timestamp'] as Timestamp).toDate())
-                                  : '',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: isMe ? Colors.white70 : Colors.grey,
-                              ),
+                              time,
+                              style: const TextStyle(fontSize: 10),
                             ),
                           ],
                         ),
@@ -174,33 +211,34 @@ class _PrivateChatScreenState extends State<PrivateChatScreen> {
             ),
           ),
 
-          // Message Input
+          // Message input field
           Padding(
-            padding: const EdgeInsets.all(12.0),
+            padding: const EdgeInsets.all(10),
             child: Row(
               children: [
                 Expanded(
                   child: TextField(
                     controller: _messageController,
                     decoration: InputDecoration(
-                      hintText: "Type a message...",
+                      hintText: "Type a message",
                       filled: true,
                       fillColor: Colors.grey[900],
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
+                        borderRadius: BorderRadius.circular(25),
                         borderSide: BorderSide.none,
                       ),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 14),
                     ),
+
+                    // Send message when user presses enter
                     onSubmitted: (_) => _sendMessage(),
                   ),
                 ),
                 const SizedBox(width: 8),
-                FloatingActionButton(
+
+                // Send button
+                IconButton(
+                  icon: const Icon(Icons.send),
                   onPressed: _sendMessage,
-                  mini: true,
-                  child: const Icon(Icons.send),
                 ),
               ],
             ),
