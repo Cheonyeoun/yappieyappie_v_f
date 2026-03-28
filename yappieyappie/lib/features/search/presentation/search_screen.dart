@@ -51,7 +51,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     )
                   : null,
               filled: true,
-              fillColor: Colors.grey[900],
+              fillColor: const Color.fromARGB(255, 51, 51, 51),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
