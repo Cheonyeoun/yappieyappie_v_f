@@ -49,56 +49,21 @@ class NotificationService {
     });
   }
 
-  /// Send notification using OneSignal REST API
-  Future<void> sendNotification({
-    required String playerId,
-    required String title,
-    required String body,
-    String? bigPicture,
-  }) async {
-    const appId = '7230eef8-03e0-4a88-bdf6-1326777ce1dd';
-    const restApiKey =
-        'os_v2_app_oiyo56ad4bfirppwcmtho7hb3w54aahbkmcuha567q57i242hkfoklzj37a4kphi6cwqbejtbujoxg4fufyl6bvgdopcrdncs5mllgi';
-
-    final url = Uri.parse('https://onesignal.com/api/v1/notifications');
-
-    final response = await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Basic $restApiKey',
-      },
-      body: jsonEncode({
-        'app_id': appId,
-        'include_player_ids': [playerId],
-        'headings': {'en': title},
-        'contents': {'en': body},
-        'big_picture': bigPicture ?? '',
-        'android_background_layout': {
-          'image': bigPicture ?? '',
-          'headings_color': 'FF000000',
-          'contents_color': 'FF000000',
-        },
-        'ios_attachments': {'id': bigPicture ?? ''},
-      }),
-    );
-
-    if (response.statusCode != 200) {
-      print('Notification failed: ${response.body}');
-    }
-  }
-
+  // NOTE: sendNotification (REST API call) removed for security.
+  // Use sendNotificationToBackend instead.
   /// Backend grouped notification
   Future<void> sendNotificationToBackend({
     required String receiverUid,
     required List<Map<String, dynamic>> messages,
-    required String playerId, // FIXED: Added missing parameter
-    required String chatRoomId, // FIXED: Added missing parameter
-    required int unreadCount, // FIXED: Added missing parameter
+    required String playerId,
+    required String chatRoomId,
+    required int unreadCount,
   }) async {
     try {
       final response = await http.post(
-        Uri.parse("http://10.180.146.36:3000/send-notification"),
+        // Replace with your Render URL once deployed
+        Uri.parse(
+            "https://talkie_talkie_vp1423-backend.onrender.com/send-notification"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "playerId": playerId,
