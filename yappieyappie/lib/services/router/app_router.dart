@@ -7,8 +7,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../features/auth/presentation/auth_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/splash/presentation/splash_screen.dart';
-import '../providers/auth_provider.dart'; // <- authStateProvider
-import '../providers/splash_provider.dart'; // <- splashScreenProvider
+import '../providers/auth/auth_provider.dart'; // <- authStateProvider
+import '../providers/splash/splash_provider.dart'; // <- splashScreenProvider
 
 // Optional: class to notify GoRouter of auth changes
 class GoRouterRefreshStream extends ChangeNotifier {

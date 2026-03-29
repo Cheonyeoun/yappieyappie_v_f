@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:yappieyappie/services/providers/splash_provider.dart';
+import 'package:yappieyappie/services/providers/splash/splash_provider.dart';
 
 /// Splash screen responsible for:
 /// 1. Marking user as online in Firestore

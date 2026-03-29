@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:yappieyappie/models/user_model.dart';
+import 'package:yappieyappie/models/profile/user_model.dart';
 import 'package:yappieyappie/services/profile/user_service.dart';
 
 final userServiceProvider = Provider<UserService>((ref) {

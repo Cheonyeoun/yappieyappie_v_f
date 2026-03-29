@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:yappieyappie/models/user_model.dart';
+import 'package:yappieyappie/models/profile/user_model.dart';
 import 'package:yappieyappie/features/profile/presentation/profile_screen.dart';
 
 class SearchScreen extends StatefulWidget {
