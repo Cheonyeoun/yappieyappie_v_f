@@ -2,9 +2,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'services/router/app_router.dart'; // Adjust path to your router file
-import 'core/theme/app_theme.dart'; // Adjust path to your theme
+import 'core/theme/core/app_theme.dart'; // Adjust path to your theme
 import 'firebase_options.dart';
-import 'core/utils/app_lifecycle_observer.dart'; // Your Observer file
+import 'core/utils/core/app_lifecycle_observer.dart'; // Your Observer file
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

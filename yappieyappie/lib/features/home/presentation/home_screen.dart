@@ -2,9 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:yappieyappie/features/chat_list/presentation/chat_list_screen.dart';
 import 'package:yappieyappie/features/profile/presentation/profile_screen.dart';
 import 'package:yappieyappie/features/home/presentation/widgets/bottom_nav_bar.dart';
-import 'package:yappieyappie/models/user_model.dart';
+import 'package:yappieyappie/models/profile/user_model.dart';
 import 'package:yappieyappie/services/profile/user_service.dart';
 import 'package:yappieyappie/features/search/presentation/search_screen.dart';
 import 'package:yappieyappie/services/auth/auth_service.dart';
@@ -31,83 +32,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
 
     final screens = [
-      // User info tab
-      StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (!snapshot.hasData || !snapshot.data!.exists) {
-            return const Center(child: Text("Waiting for user data..."));
-          }
-
-          final data = snapshot.data!.data() as Map<String, dynamic>;
-
-          final username = data['username'] ?? 'unknown';
-          final email = data['email'] ?? 'no-email';
-          final isOnline = data['isOnline'] ?? false;
-          final showOnline = data['showOnlineStatus'] ?? false;
-
-          return Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "USER IDENTITY",
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  "Username: @$username",
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text("Email: $email"),
-                const SizedBox(height: 30),
-                const Text(
-                  "GHOST LOG DATA",
-                  style: TextStyle(
-                    color: const Color.fromARGB(255, 255, 140, 0),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                _statusTile(
-                  "Is Online",
-                  isOnline.toString(),
-                  Icons.circle,
-                  isOnline ? Colors.green : Colors.grey,
-                ),
-                _statusTile(
-                  "Visibility Toggle",
-                  showOnline ? "Visible" : "Hidden",
-                  Icons.visibility,
-                  const Color.fromARGB(255, 125, 166, 183),
-                ),
-                const Spacer(),
-                const Center(
-                  child: Text(
-                    "M2 Milestone: Auth & Sync Complete",
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-
+      // Chat List Tab
+      const ChatListScreen(),
       // Search tab
       const SearchScreen(),
 

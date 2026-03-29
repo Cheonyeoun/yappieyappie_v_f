@@ -3,9 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:yappieyappie/features/chat/presentation/private_chat_screen.dart';
-import 'package:yappieyappie/models/user_model.dart';
-import 'package:yappieyappie/services/profile/user_provider.dart';
+import 'package:yappieyappie/features/chat/presentation/screens/private_chat_screen.dart';
+import 'package:yappieyappie/models/profile/user_model.dart';
+import 'package:yappieyappie/services/providers/profile/user_provider.dart';
 
 class ChatListScreen extends ConsumerWidget {
   const ChatListScreen({super.key});

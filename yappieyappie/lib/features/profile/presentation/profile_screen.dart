@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:yappieyappie/models/user_model.dart';
-import 'package:yappieyappie/features/chat/presentation/private_chat_screen.dart';
+import 'package:yappieyappie/models/profile/user_model.dart';
+import 'package:yappieyappie/features/chat/presentation/screens/private_chat_screen.dart';
 import 'package:yappieyappie/services/auth/auth_service.dart';
 
 class ProfileScreen extends ConsumerWidget {
