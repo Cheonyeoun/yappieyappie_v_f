@@ -62,8 +62,7 @@ class NotificationService {
     try {
       final response = await http.post(
         // Replace with your Render URL once deployed
-        Uri.parse(
-            "https://talkie_talkie_vp1423-backend.onrender.com/send-notification"),
+        Uri.parse("https://yappieyappie-v-f.onrender.com/send-notification"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "playerId": playerId,
