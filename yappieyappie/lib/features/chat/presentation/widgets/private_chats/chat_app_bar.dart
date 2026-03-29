@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:yappieyappie/features/profile/presentation/profile_screen.dart';
 import 'package:yappieyappie/models/profile/user_model.dart';
 import 'package:yappieyappie/services/providers/profile/user_provider.dart';
 
@@ -18,7 +19,10 @@ class ChatAppBar extends ConsumerWidget implements PreferredSizeWidget {
       // WRAPPED TITLE IN INKWELL: Opens user profile when tapped
       title: InkWell(
         onTap: () {
-          // Navigator.push(...)
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => ProfileScreen(user: otherUser)));
         },
         child: userAsync.when(
           data: (user) => Row(
