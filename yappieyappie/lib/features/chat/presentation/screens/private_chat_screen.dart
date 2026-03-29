@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yappieyappie/models/profile/user_model.dart';
 import 'package:yappieyappie/services/providers/chat/chat_provider.dart';
+import 'package:yappieyappie/services/providers/chat/chat_selection_provider.dart';
 
 import 'package:yappieyappie/features/chat/presentation/widgets/private_chats/chat_app_bar.dart';
 import 'package:yappieyappie/features/chat/presentation/widgets/private_chats/chat_messages_list.dart';
@@ -50,19 +51,34 @@ class _PrivateChatScreenState extends ConsumerState<PrivateChatScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = ChatThemes.yappieDark;
-    return Scaffold(
-      backgroundColor: theme.background,
-      appBar: ChatAppBar(otherUser: widget.otherUser),
-      body: Column(
-        children: [
-          Expanded(
-            child: ChatMessagesList(otherUser: widget.otherUser, theme: theme),
-          ),
-          ChatInput(
-            controller: _messageController,
-            onSend: _handleSendMessage,
-          ),
-        ],
+
+    return WillPopScope(
+      onWillPop: () async {
+        final isSelectionMode = ref.read(isSelectionModeProvider);
+
+        if (isSelectionMode) {
+          ref.read(isSelectionModeProvider.notifier).state = false;
+          ref.read(selectedMessagesProvider.notifier).state = {};
+          return false;
+        }
+
+        return true;
+      },
+      child: Scaffold(
+        backgroundColor: theme.background,
+        appBar: ChatAppBar(otherUser: widget.otherUser),
+        body: Column(
+          children: [
+            Expanded(
+              child:
+                  ChatMessagesList(otherUser: widget.otherUser, theme: theme),
+            ),
+            ChatInput(
+              controller: _messageController,
+              onSend: _handleSendMessage,
+            ),
+          ],
+        ),
       ),
     );
   }
