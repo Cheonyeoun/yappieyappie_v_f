@@ -14,14 +14,12 @@ class ChatListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final currentUser = FirebaseAuth.instance.currentUser;
 
-    // If user is not logged in, show fallback UI
     if (currentUser == null) {
       return const Scaffold(
         body: Center(child: Text("User not logged in")),
       );
     }
 
-    // Query to get chats where current user is a participant
     final chatRoomsRef = FirebaseFirestore.instance
         .collection('chats')
         .where('participants', arrayContains: currentUser.uid)
@@ -29,19 +27,17 @@ class ChatListScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Yapp List"),
+        title: const Text("Yap Circle"),
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: chatRoomsRef.snapshots(),
         builder: (context, snapshot) {
-          // Show loading indicator while data is being fetched
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
 
           final chatRooms = snapshot.data!.docs;
 
-          // If no chats exist
           if (chatRooms.isEmpty) {
             return const Center(child: Text("No conversations yet"));
           }
@@ -49,45 +45,31 @@ class ChatListScreen extends ConsumerWidget {
           return ListView.builder(
             itemCount: chatRooms.length,
             itemBuilder: (_, index) {
-              final doc = chatRooms[index];
-              final data = doc.data() as Map<String, dynamic>;
+              final data = chatRooms[index].data() as Map<String, dynamic>;
 
-              // Get participants list
               final participants =
                   List<String>.from(data['participants'] ?? []);
 
-              // Find the other user's UID (not current user)
-              final otherUsers =
-                  participants.where((id) => id != currentUser.uid).toList();
+              final otherUid = participants.firstWhere(
+                (id) => id != currentUser.uid,
+                orElse: () => '',
+              );
 
-              // If no valid other user, skip rendering
-              if (otherUsers.isEmpty) {
-                return const SizedBox();
-              }
+              if (otherUid.isEmpty) return const SizedBox();
 
-              final otherUid = otherUsers.first;
+              final lastMessage = data['lastMessage'] ?? '';
+              final lastSenderId = data['lastSenderId'] ?? '';
 
-              // Last message details
-              final lastMessage = data['lastMessage'] as String? ?? '';
-              final lastSenderId = data['lastSenderId'] as String? ?? '';
-
-              // Check if last message was sent by current user
               final isMe = lastSenderId == currentUser.uid;
-
-              // Show "You: ..." if current user sent the last message
               final displayMessage = isMe ? "You: $lastMessage" : lastMessage;
 
-              // Last message time formatting
-              final lastMessageTime = data['lastMessageTime'] != null
-                  ? (data['lastMessageTime'] as Timestamp).toDate()
-                  : null;
+              final lastMessageTime =
+                  (data['lastMessageTime'] as Timestamp?)?.toDate();
 
-              // Unread messages count for current user
               final unreadCounts =
                   data['unreadCounts'] as Map<String, dynamic>? ?? {};
               final unreadCount = unreadCounts[currentUser.uid] ?? 0;
 
-              // Listen to user data using Riverpod provider
               final userAsync = ref.watch(userStreamProvider(otherUid));
 
               return userAsync.when(
@@ -105,13 +87,9 @@ class ChatListScreen extends ConsumerWidget {
                     );
                   },
                 ),
-
-                // Lightweight loading state
                 loading: () => const ListTile(
                   title: Text("Loading..."),
                 ),
-
-                // Basic error fallback
                 error: (_, __) => const ListTile(
                   title: Text("Error loading user"),
                 ),
