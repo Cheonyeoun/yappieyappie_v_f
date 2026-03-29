@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:yappieyappie/services/notifications/notification_service.dart';
+import 'package:yappieyappie/models/profile/user_model.dart';
 
 class ChatService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -44,6 +46,7 @@ class ChatService {
     await chatRef.collection('messages').add({
       'text': text.trim(),
       'senderId': currentUid,
+      'receiverId': otherUid, // Added for notification purposes
       'timestamp': FieldValue.serverTimestamp(),
 
       // default values
@@ -65,6 +68,65 @@ class ChatService {
       'unreadCounts.$otherUid': FieldValue.increment(1),
       'unreadCounts.$currentUid': 0,
     });
+
+    final currentUserDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUid)
+        .get();
+    final currentUser = UserModel.fromMap(currentUserDoc.data()!);
+
+    // 3. Trigger notification via backend with grouped messages
+    final receiverDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(otherUid)
+        .get();
+
+    final receiverPlayerId = receiverDoc.data()?['playerId'];
+
+    // Fetch the updated unread count to decide on the stack
+    final chatDoc = await chatRef.get();
+    final int unreadCount =
+        (chatDoc.data()?['unreadCounts']?[otherUid] ?? 0) as int;
+
+    // UX Logic: Only notify if they aren't looking at the chat (unread > 0)
+    if (receiverPlayerId != null && unreadCount > 0) {
+      // Fetch exactly the number of unread messages (up to 8 for the stack)
+      int limit = unreadCount > 8 ? 8 : unreadCount;
+
+      final lastMessagesSnapshot = await _db
+          .collection('chats')
+          .doc(chatRoomId)
+          .collection('messages')
+          .orderBy('timestamp', descending: true)
+          .limit(limit)
+          .get();
+
+      List<Map<String, dynamic>> messagesForNotification =
+          lastMessagesSnapshot.docs
+              .map((doc) {
+                final data = doc.data();
+                return {
+                  "senderName": data['senderId'] == currentUid
+                      ? currentUser.name
+                      : receiverDoc.data()?['name'] ?? "Someone",
+                  "text": data['text'],
+                  "profileImg": data['senderId'] == currentUid
+                      ? currentUser.profileimg ?? ""
+                      : receiverDoc.data()?['profileimg'] ?? "",
+                };
+              })
+              .toList()
+              .reversed
+              .toList(); // Oldest unread first
+
+      await NotificationService().sendNotificationToBackend(
+        receiverUid: otherUid,
+        messages: messagesForNotification,
+        playerId: receiverPlayerId,
+        chatRoomId: chatRoomId,
+        unreadCount: unreadCount,
+      );
+    }
   }
 
   // Delete for current user only

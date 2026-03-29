@@ -10,19 +10,25 @@ class UserModel {
   final DateTime? createdAt;
   final DateTime? lastActive;
   final bool isOnline;
-  final bool showOnlineStatus; // New field to control online status visibility
+  final bool showOnlineStatus;
 
-  UserModel(
-      {required this.uid,
-      required this.name,
-      this.username = '',
-      required this.email,
-      this.bio,
-      this.createdAt,
-      this.lastActive,
-      this.isOnline = false,
-      this.showOnlineStatus = true, // Default to true
-      this.profileimg});
+  // New field for OneSignal device ID
+  final String? playerId;
+
+  UserModel({
+    required this.uid,
+    required this.name,
+    this.username = '',
+    required this.email,
+    this.bio,
+    this.createdAt,
+    this.lastActive,
+    this.isOnline = false,
+    this.showOnlineStatus = true,
+    this.profileimg,
+    this.playerId,
+  });
+
   // Convert to Firestore Map
   Map<String, dynamic> toMap() {
     return {
@@ -35,7 +41,8 @@ class UserModel {
       'lastActive': lastActive ?? FieldValue.serverTimestamp(),
       'isOnline': isOnline,
       'profileimg': profileimg,
-      'showOnlineStatus': showOnlineStatus, // <--- Map it here
+      'showOnlineStatus': showOnlineStatus,
+      'playerId': playerId, // Save OneSignal device ID
     };
   }
 
@@ -55,15 +62,18 @@ class UserModel {
           ? (map['lastActive'] as Timestamp).toDate()
           : null,
       isOnline: map['isOnline'] ?? false,
-      showOnlineStatus: map['showOnlineStatus'] ?? true, // <--- Handle it here
+      showOnlineStatus: map['showOnlineStatus'] ?? true,
+      playerId: map['playerId'], // Retrieve OneSignal device ID
     );
   }
+
   // Helper method for updating specific fields easily
   UserModel copyWith({
     String? username,
     bool? isOnline,
     bool? showOnlineStatus,
     DateTime? lastActive,
+    String? playerId, // Update device ID
   }) {
     return UserModel(
       uid: uid,
@@ -76,6 +86,7 @@ class UserModel {
       lastActive: lastActive ?? this.lastActive,
       isOnline: isOnline ?? this.isOnline,
       showOnlineStatus: showOnlineStatus ?? this.showOnlineStatus,
+      playerId: playerId ?? this.playerId,
     );
   }
 }

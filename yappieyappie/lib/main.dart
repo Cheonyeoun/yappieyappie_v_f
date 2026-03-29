@@ -5,6 +5,7 @@ import 'services/router/app_router.dart'; // Adjust path to your router file
 import 'core/theme/core/app_theme.dart'; // Adjust path to your theme
 import 'firebase_options.dart';
 import 'core/utils/core/app_lifecycle_observer.dart'; // Your Observer file
+import 'package:yappieyappie/services/notifications/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -12,6 +13,13 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
+  // Initialize notifications safely
+  try {
+    await NotificationService().init();
+  } catch (e) {
+    // Prevent app crash if notification setup fails
+    debugPrint('Notification init failed: $e');
+  }
   runApp(
     const ProviderScope(
       child: YappieYappieApp(),
