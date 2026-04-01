@@ -24,16 +24,20 @@ app.post("/send-notification", validateRequest, async (req, res) => {
   try {
     let contentsText = "";
 
+    const lastMsg = messages[messages.length - 1];
+
     // 8+ Logic: Summarize if count is high, otherwise list the stack
     if (unreadCount >= 8) {
       contentsText = `${unreadCount} new messages`;
+    } else if (unreadCount > 1 && messages.length < unreadCount) {
+      // FIX: handle mismatch between unreadCount and messages length
+      contentsText = `${lastMsg.senderName}: ${lastMsg.text} (+${unreadCount - 1} more)`;
     } else {
       messages.forEach((msg) => {
         contentsText += `${msg.senderName}: ${msg.text}\n`;
       });
     }
 
-    const lastMsg = messages[messages.length - 1];
     const profileImg = lastMsg?.profileImg || "";
 
     const response = await axios.post(

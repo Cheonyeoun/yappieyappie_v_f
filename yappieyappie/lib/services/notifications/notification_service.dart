@@ -37,13 +37,11 @@ class NotificationService {
 
     // Foreground handler
     OneSignal.Notifications.addForegroundWillDisplayListener((event) {
-      // `event` type is inferred, no import needed
       event.notification.display();
     });
 
     // Notification clicked handler
     OneSignal.Notifications.addClickListener((event) {
-      // `openedResult` type is inferred automatically
       print(
           'Notification clicked: ${event.notification.title} -> ${event.notification.body}');
     });
@@ -83,29 +81,5 @@ class NotificationService {
     } catch (e) {
       print("Notification error: $e");
     }
-  }
-
-  /// Direct OneSignal test (for local testing only)
-  Future<void> sendTestNotification({
-    required String playerId,
-    required String title,
-    required String message,
-  }) async {
-    const apiKey = "YOUR_ONESIGNAL_REST_API_KEY";
-
-    await http.post(
-      Uri.parse("https://onesignal.com/api/v1/notifications"),
-      headers: {
-        "Authorization": "Basic $apiKey",
-        "Content-Type": "application/json"
-      },
-      body: jsonEncode({
-        "app_id": "7230eef8-03e0-4a88-bdf6-1326777ce1dd",
-        "include_player_ids": [playerId],
-        "headings": {"en": title},
-        "contents": {"en": message},
-        "priority": 10,
-      }),
-    );
   }
 }
