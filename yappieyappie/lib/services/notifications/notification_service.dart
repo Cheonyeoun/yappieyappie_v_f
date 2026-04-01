@@ -19,7 +19,7 @@ class NotificationService {
     await OneSignal.Notifications.requestPermission(true);
 
     // Small delay
-    await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(const Duration(seconds: 1));
 
     // Get player ID
     final playerId = OneSignal.User.pushSubscription.id;
@@ -37,13 +37,11 @@ class NotificationService {
 
     // Foreground handler
     OneSignal.Notifications.addForegroundWillDisplayListener((event) {
-      // `event` type is inferred, no import needed
       event.notification.display();
     });
 
     // Notification clicked handler
     OneSignal.Notifications.addClickListener((event) {
-      // `openedResult` type is inferred automatically
       print(
           'Notification clicked: ${event.notification.title} -> ${event.notification.body}');
     });
@@ -61,7 +59,6 @@ class NotificationService {
   }) async {
     try {
       final response = await http.post(
-        // Replace with your Render URL once deployed
         Uri.parse("https://yappieyappie-v-f.onrender.com/send-notification"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({

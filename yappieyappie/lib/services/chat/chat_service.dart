@@ -90,34 +90,13 @@ class ChatService {
 
     // UX Logic: Only notify if they aren't looking at the chat (unread > 0)
     if (receiverPlayerId != null && unreadCount > 0) {
-      // Fetch exactly the number of unread messages (up to 8 for the stack)
-      int limit = unreadCount > 8 ? 8 : unreadCount;
-
-      final lastMessagesSnapshot = await _db
-          .collection('chats')
-          .doc(chatRoomId)
-          .collection('messages')
-          .orderBy('timestamp', descending: true)
-          .limit(limit)
-          .get();
-
-      List<Map<String, dynamic>> messagesForNotification =
-          lastMessagesSnapshot.docs
-              .map((doc) {
-                final data = doc.data();
-                return {
-                  "senderName": data['senderId'] == currentUid
-                      ? currentUser.name
-                      : receiverDoc.data()?['name'] ?? "Someone",
-                  "text": data['text'],
-                  "profileImg": data['senderId'] == currentUid
-                      ? currentUser.profileimg ?? ""
-                      : receiverDoc.data()?['profileimg'] ?? "",
-                };
-              })
-              .toList()
-              .reversed
-              .toList(); // Oldest unread first
+      List<Map<String, dynamic>> messagesForNotification = [
+        {
+          "senderName": currentUser.name,
+          "text": text.trim(),
+          "profileImg": currentUser.profileimg ?? "",
+        }
+      ];
 
       await NotificationService().sendNotificationToBackend(
         receiverUid: otherUid,

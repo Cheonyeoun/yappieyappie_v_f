@@ -12,9 +12,17 @@ const API_KEY = process.env.ONESIGNAL_API_KEY;
 
 const validateRequest = (req, res, next) => {
   const { playerId, messages, unreadCount } = req.body;
-  if (!playerId || !messages || unreadCount === undefined) {
+
+  // FIX: stronger validation without changing structure
+  if (
+    !playerId ||
+    !Array.isArray(messages) ||
+    messages.length === 0 ||
+    typeof unreadCount !== "number"
+  ) {
     return res.status(400).json({ error: "Missing fields" });
   }
+
   next();
 };
 
@@ -24,16 +32,24 @@ app.post("/send-notification", validateRequest, async (req, res) => {
   try {
     let contentsText = "";
 
+    const lastMsg = messages[messages.length - 1];
+
     // 8+ Logic: Summarize if count is high, otherwise list the stack
     if (unreadCount >= 8) {
       contentsText = `${unreadCount} new messages`;
+    } else if (unreadCount > 1 && messages.length < unreadCount) {
+      // FIX: safe fallback to avoid crash
+      if (!lastMsg) {
+        contentsText = `${unreadCount} new messages`;
+      } else {
+        contentsText = `${lastMsg.senderName || "Someone"}: ${lastMsg.text || ""} (+${unreadCount - 1} more)`;
+      }
     } else {
       messages.forEach((msg) => {
         contentsText += `${msg.senderName}: ${msg.text}\n`;
       });
     }
 
-    const lastMsg = messages[messages.length - 1];
     const profileImg = lastMsg?.profileImg || "";
 
     const response = await axios.post(
@@ -43,18 +59,22 @@ app.post("/send-notification", validateRequest, async (req, res) => {
         include_player_ids: [playerId],
         headings: { en: lastMsg?.senderName || "New Message" },
         contents: { en: contentsText.trim() },
-        
+
         // --- UX FIX: OVERWRITE PREVIOUS BUBBLE ---
-        collapse_id: chatRoomId, 
-        
+        collapse_id: chatRoomId,
+
         // --- GROUPING LOGIC ---
         thread_id: chatRoomId,
         android_group: chatRoomId,
 
         large_icon: profileImg,
-        ios_attachments: { "id": profileImg },
+        ios_attachments: { id: profileImg },
         priority: 10,
-        android_visibility: 1
+        android_visibility: 1,
+
+        content_available: true,
+        mutable_content: true,
+        ttl: 30
       },
       {
         headers: {
