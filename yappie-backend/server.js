@@ -43,18 +43,22 @@ app.post("/send-notification", validateRequest, async (req, res) => {
         include_player_ids: [playerId],
         headings: { en: lastMsg?.senderName || "New Message" },
         contents: { en: contentsText.trim() },
-        
+
         // --- UX FIX: OVERWRITE PREVIOUS BUBBLE ---
-        collapse_id: chatRoomId, 
-        
+        collapse_id: chatRoomId,
+
         // --- GROUPING LOGIC ---
         thread_id: chatRoomId,
         android_group: chatRoomId,
 
         large_icon: profileImg,
-        ios_attachments: { "id": profileImg },
+        ios_attachments: { id: profileImg },
         priority: 10,
-        android_visibility: 1
+        android_visibility: 1,
+
+        content_available: true,
+        mutable_content: true,
+        ttl: 30
       },
       {
         headers: {

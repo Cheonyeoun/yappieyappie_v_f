@@ -19,7 +19,7 @@ class NotificationService {
     await OneSignal.Notifications.requestPermission(true);
 
     // Small delay
-    await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(const Duration(seconds: 1));
 
     // Get player ID
     final playerId = OneSignal.User.pushSubscription.id;
@@ -61,7 +61,6 @@ class NotificationService {
   }) async {
     try {
       final response = await http.post(
-        // Replace with your Render URL once deployed
         Uri.parse("https://yappieyappie-v-f.onrender.com/send-notification"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
@@ -84,5 +83,29 @@ class NotificationService {
     } catch (e) {
       print("Notification error: $e");
     }
+  }
+
+  /// Direct OneSignal test (for local testing only)
+  Future<void> sendTestNotification({
+    required String playerId,
+    required String title,
+    required String message,
+  }) async {
+    const apiKey = "YOUR_ONESIGNAL_REST_API_KEY";
+
+    await http.post(
+      Uri.parse("https://onesignal.com/api/v1/notifications"),
+      headers: {
+        "Authorization": "Basic $apiKey",
+        "Content-Type": "application/json"
+      },
+      body: jsonEncode({
+        "app_id": "7230eef8-03e0-4a88-bdf6-1326777ce1dd",
+        "include_player_ids": [playerId],
+        "headings": {"en": title},
+        "contents": {"en": message},
+        "priority": 10,
+      }),
+    );
   }
 }
