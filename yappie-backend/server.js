@@ -12,9 +12,17 @@ const API_KEY = process.env.ONESIGNAL_API_KEY;
 
 const validateRequest = (req, res, next) => {
   const { playerId, messages, unreadCount } = req.body;
-  if (!playerId || !messages || unreadCount === undefined) {
+
+  // FIX: stronger validation without changing structure
+  if (
+    !playerId ||
+    !Array.isArray(messages) ||
+    messages.length === 0 ||
+    typeof unreadCount !== "number"
+  ) {
     return res.status(400).json({ error: "Missing fields" });
   }
+
   next();
 };
 
@@ -30,8 +38,12 @@ app.post("/send-notification", validateRequest, async (req, res) => {
     if (unreadCount >= 8) {
       contentsText = `${unreadCount} new messages`;
     } else if (unreadCount > 1 && messages.length < unreadCount) {
-      // FIX: handle mismatch between unreadCount and messages length
-      contentsText = `${lastMsg.senderName}: ${lastMsg.text} (+${unreadCount - 1} more)`;
+      // FIX: safe fallback to avoid crash
+      if (!lastMsg) {
+        contentsText = `${unreadCount} new messages`;
+      } else {
+        contentsText = `${lastMsg.senderName || "Someone"}: ${lastMsg.text || ""} (+${unreadCount - 1} more)`;
+      }
     } else {
       messages.forEach((msg) => {
         contentsText += `${msg.senderName}: ${msg.text}\n`;
