@@ -12,9 +12,6 @@ class UserModel {
   final bool isOnline;
   final bool showOnlineStatus;
 
-  // New field for OneSignal device ID
-  final String? playerId;
-
   UserModel({
     required this.uid,
     required this.name,
@@ -26,7 +23,6 @@ class UserModel {
     this.isOnline = false,
     this.showOnlineStatus = true,
     this.profileimg,
-    this.playerId,
   });
 
   // Convert to Firestore Map
@@ -42,7 +38,6 @@ class UserModel {
       'isOnline': isOnline,
       'profileimg': profileimg,
       'showOnlineStatus': showOnlineStatus,
-      'playerId': playerId, // Save OneSignal device ID
     };
   }
 
@@ -63,7 +58,6 @@ class UserModel {
           : null,
       isOnline: map['isOnline'] ?? false,
       showOnlineStatus: map['showOnlineStatus'] ?? true,
-      playerId: map['playerId'], // Retrieve OneSignal device ID
     );
   }
 
@@ -73,7 +67,6 @@ class UserModel {
     bool? isOnline,
     bool? showOnlineStatus,
     DateTime? lastActive,
-    String? playerId, // Update device ID
   }) {
     return UserModel(
       uid: uid,
@@ -86,7 +79,6 @@ class UserModel {
       lastActive: lastActive ?? this.lastActive,
       isOnline: isOnline ?? this.isOnline,
       showOnlineStatus: showOnlineStatus ?? this.showOnlineStatus,
-      playerId: playerId ?? this.playerId,
     );
   }
 }

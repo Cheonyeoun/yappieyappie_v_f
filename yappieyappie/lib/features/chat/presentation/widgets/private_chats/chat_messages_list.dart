@@ -33,6 +33,8 @@ class ChatMessagesList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
     final screenWidth = MediaQuery.of(context).size.width;
+    final isSelectionMode = ref.watch(isSelectionModeProvider);
+    final selectedMessages = ref.watch(selectedMessagesProvider);
 
     final roomId = ref.watch(chatServiceProvider).getChatRoomId(otherUser.uid);
     final messagesAsync = ref.watch(chatMessagesProvider(roomId));
@@ -79,8 +81,6 @@ class ChatMessagesList extends ConsumerWidget {
               });
             }
 
-            final isSelectionMode = ref.watch(isSelectionModeProvider);
-            final selectedMessages = ref.watch(selectedMessagesProvider);
             final isSelected = selectedMessages.contains(msg.id);
 
             // DATE DIVIDER LOGIC
@@ -134,32 +134,19 @@ class ChatMessagesList extends ConsumerWidget {
                     ),
                   GestureDetector(
                     onLongPress: () {
-                      ref.read(isSelectionModeProvider.notifier).state = true;
-
-                      ref
-                          .read(selectedMessagesProvider.notifier)
-                          .update((state) {
-                        final newSet = {...state};
-                        newSet.add(msg.id);
-                        return newSet;
-                      });
+                      ref.read(isSelectionModeProvider.notifier).setValue(true);
+                      ref.read(selectedMessagesProvider.notifier).add(msg.id);
                     },
                     onTap: () {
                       if (!isSelectionMode) return;
 
-                      ref
-                          .read(selectedMessagesProvider.notifier)
-                          .update((state) {
-                        final newSet = {...state};
-
-                        if (newSet.contains(msg.id)) {
-                          newSet.remove(msg.id);
-                        } else {
-                          newSet.add(msg.id);
-                        }
-
-                        return newSet;
-                      });
+                      if (selectedMessages.contains(msg.id)) {
+                        ref
+                            .read(selectedMessagesProvider.notifier)
+                            .remove(msg.id);
+                      } else {
+                        ref.read(selectedMessagesProvider.notifier).add(msg.id);
+                      }
                     },
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 150),

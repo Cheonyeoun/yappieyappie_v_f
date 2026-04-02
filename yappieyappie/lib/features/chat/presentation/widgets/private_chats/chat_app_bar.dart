@@ -28,8 +28,8 @@ class ChatAppBar extends ConsumerWidget implements PreferredSizeWidget {
           ? IconButton(
               icon: const Icon(Icons.close),
               onPressed: () {
-                ref.read(isSelectionModeProvider.notifier).state = false;
-                ref.read(selectedMessagesProvider.notifier).state = {};
+                ref.read(isSelectionModeProvider.notifier).setValue(false);
+                ref.read(selectedMessagesProvider.notifier).clear();
               },
             )
           : null,
@@ -144,8 +144,10 @@ class ChatAppBar extends ConsumerWidget implements PreferredSizeWidget {
                         }
                       }
 
-                      ref.read(isSelectionModeProvider.notifier).state = false;
-                      ref.read(selectedMessagesProvider.notifier).state = {};
+                      ref
+                          .read(isSelectionModeProvider.notifier)
+                          .setValue(false);
+                      ref.read(selectedMessagesProvider.notifier).clear();
                     },
                     itemBuilder: (context) {
                       final items = [

@@ -1,11 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:yappieyappie/services/notifications/notification_service.dart';
-import 'package:yappieyappie/models/profile/user_model.dart';
+import 'package:flutter/foundation.dart';
 
 class ChatService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final Set<String> _seenWriteInFlight = <String>{};
 
   // Generates a unique ID shared by both users (e.g., "userA_userB")
   String getChatRoomId(String otherUid) {
@@ -29,9 +29,27 @@ class ChatService {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
 
-    await _db.collection('chats').doc(chatRoomId).update({
-      'unreadCounts.$uid': 0,
-    });
+    try {
+      final chatRef = _db.collection('chats').doc(chatRoomId);
+
+      // Attempt update first (for existing documents)
+      try {
+        await chatRef.update({
+          'unreadCounts.$uid': 0,
+        });
+      } catch (e) {
+        // If document doesn't exist, create it with proper structure
+        debugPrint('Document may not exist, attempting to create: $e');
+        await chatRef.set(
+          {
+            'unreadCounts': {uid: 0}
+          },
+          SetOptions(merge: true),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error marking as read: $e');
+    }
   }
 
   // Sends message and updates chat metadata for the list screen
@@ -69,43 +87,7 @@ class ChatService {
       'unreadCounts.$currentUid': 0,
     });
 
-    final currentUserDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(currentUid)
-        .get();
-    final currentUser = UserModel.fromMap(currentUserDoc.data()!);
-
-    // 3. Trigger notification via backend with grouped messages
-    final receiverDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(otherUid)
-        .get();
-
-    final receiverPlayerId = receiverDoc.data()?['playerId'];
-
-    // Fetch the updated unread count to decide on the stack
-    final chatDoc = await chatRef.get();
-    final int unreadCount =
-        (chatDoc.data()?['unreadCounts']?[otherUid] ?? 0) as int;
-
-    // UX Logic: Only notify if they aren't looking at the chat (unread > 0)
-    if (receiverPlayerId != null && unreadCount > 0) {
-      List<Map<String, dynamic>> messagesForNotification = [
-        {
-          "senderName": currentUser.name,
-          "text": text.trim(),
-          "profileImg": currentUser.profileimg ?? "",
-        }
-      ];
-
-      await NotificationService().sendNotificationToBackend(
-        receiverUid: otherUid,
-        messages: messagesForNotification,
-        playerId: receiverPlayerId,
-        chatRoomId: chatRoomId,
-        unreadCount: unreadCount,
-      );
-    }
+    // Message sent successfully
   }
 
   // Delete for current user only
@@ -152,14 +134,28 @@ class ChatService {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
 
-    final ref = _db
-        .collection('chats')
-        .doc(chatRoomId)
-        .collection('messages')
-        .doc(messageId);
+    final seenKey = '$chatRoomId:$messageId:$uid';
+    if (_seenWriteInFlight.contains(seenKey)) return;
+    _seenWriteInFlight.add(seenKey);
 
-    await ref.update({
-      'seenBy': FieldValue.arrayUnion([uid]),
-    });
+    try {
+      final messageRef = _db
+          .collection('chats')
+          .doc(chatRoomId)
+          .collection('messages')
+          .doc(messageId);
+      final chatRef = _db.collection('chats').doc(chatRoomId);
+
+      final batch = _db.batch();
+      batch.update(messageRef, {
+        'seenBy': FieldValue.arrayUnion([uid]),
+      });
+      batch.update(chatRef, {
+        'unreadCounts.$uid': 0,
+      });
+      await batch.commit();
+    } finally {
+      _seenWriteInFlight.remove(seenKey);
+    }
   }
 }

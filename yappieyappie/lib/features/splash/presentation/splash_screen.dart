@@ -72,7 +72,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     // Watching provider ensures rebuild when splash state changes
-    final showSplash = ref.watch(splashScreenProvider);
+    ref.watch(splashScreenProvider);
 
     return Scaffold(
       backgroundColor: Colors.black,

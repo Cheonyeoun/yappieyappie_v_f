@@ -17,23 +17,33 @@ class PrivateChatScreen extends ConsumerStatefulWidget {
   ConsumerState<PrivateChatScreen> createState() => _PrivateChatScreenState();
 }
 
-class _PrivateChatScreenState extends ConsumerState<PrivateChatScreen> {
+class _PrivateChatScreenState extends ConsumerState<PrivateChatScreen>
+    with WidgetsBindingObserver {
   final TextEditingController _messageController = TextEditingController();
+
+  String get _roomId =>
+      ref.read(chatServiceProvider).getChatRoomId(widget.otherUser.uid);
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
-    // Mark as read immediately when entering the chat
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final roomId =
-          ref.read(chatServiceProvider).getChatRoomId(widget.otherUser.uid);
-      ref.read(chatServiceProvider).markAsRead(roomId);
-    });
+    // Mark as read immediately when entering the chat.
+    ref.read(chatServiceProvider).markAsRead(_roomId);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // If user resumes while still in this chat, clear unread right away.
+      ref.read(chatServiceProvider).markAsRead(_roomId);
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _messageController.dispose();
     super.dispose();
   }
@@ -57,8 +67,8 @@ class _PrivateChatScreenState extends ConsumerState<PrivateChatScreen> {
         final isSelectionMode = ref.read(isSelectionModeProvider);
 
         if (isSelectionMode) {
-          ref.read(isSelectionModeProvider.notifier).state = false;
-          ref.read(selectedMessagesProvider.notifier).state = {};
+          ref.read(isSelectionModeProvider.notifier).setValue(false);
+          ref.read(selectedMessagesProvider.notifier).clear();
           return false;
         }
 
