@@ -1,0 +1,59 @@
+YappieYappie Upgrade Roadmap (WhatsApp/Instagram-level)
+Date: 2026-04-02
+
+Reality check:
+- A complete WhatsApp/Instagram-level app is a multi-phase product build (backend, infra, moderation, media pipeline, analytics, growth loops, QA automation).
+- Fastest safe path: deliver in production phases with measurable milestones.
+
+What has already been improved now:
+1) Read/unread sync reliability
+   - Seen + unread reset are written together in one Firestore batch.
+   - Chat screen now clears unread on app resume while still in that chat.
+2) Hot-path write optimization
+   - markAsSeen now deduplicates in-flight writes to avoid repeated duplicate Firestore updates during rapid rebuilds.
+3) Chat UI rebuild optimization
+   - Selection state watchers moved out of each row build loop to reduce per-item provider watches.
+
+Phase 1 (1-2 weeks): Production chat core
+- Typing indicators (per room, with debounce and expiry).
+- Message delivery states: sent, delivered, seen (clean state machine).
+- Pagination/infinite scroll for messages (cursor-based).
+- Retry queue for failed sends (offline-safe send pipeline).
+- Firestore indexes and query tuning for chat list + room messages.
+- Basic crash/error telemetry (Firebase Crashlytics + structured logs).
+
+Phase 2 (2-3 weeks): Media and quality
+- Image/video/audio attachments with upload progress + cancellation.
+- Thumbnail generation and caching strategy.
+- Message actions: reply, forward, copy, pin, star.
+- Optimized image loading and cache limits.
+- Better scroll anchoring and jump-to-latest behavior.
+
+Phase 3 (2-4 weeks): Realtime experience like WhatsApp
+- End-to-end notification pipeline (FCM + server fanout + collapse keys).
+- Presence precision: online/last seen/typing with TTL.
+- Multi-device read sync and conflict handling.
+- Background sync behavior hardening for Android/iOS lifecycle edge cases.
+
+Phase 4 (3-6 weeks): Instagram-like engagement layer
+- Reels/posts architecture (if desired scope includes social feed).
+- Media feed ranking and prefetch strategy.
+- Stories-like ephemeral content model.
+- Follow graph, privacy controls, block/report/moderation.
+
+Phase 5 (ongoing): Security + scale + release engineering
+- Firestore security rules hardening and test suite.
+- Abuse controls, rate limits, anti-spam heuristics.
+- CI/CD with flavor builds and staged rollout.
+- Performance budgets (startup time, frame build time, Firestore reads/session).
+
+Recommended immediate next implementation batch:
+1) Message pagination in chat screen.
+2) Typing indicator with debounce.
+3) Crashlytics integration and structured error reporting.
+
+Definition of done for "chat like WhatsApp":
+- No duplicate sends/seen events.
+- Unread counters always consistent across resume/background/device switch.
+- Chat open under 300ms from list tap on warm start.
+- Smooth 60fps scrolling on mid-tier Android with 5k+ message room history.

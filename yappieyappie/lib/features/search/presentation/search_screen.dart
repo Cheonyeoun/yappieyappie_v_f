@@ -111,8 +111,8 @@ class _SearchScreenState extends State<SearchScreen> {
                             ? const Icon(Icons.person, size: 32)
                             : null,
                       ),
-                      title: Text(userModel.name ?? 'No Name'),
-                      subtitle: Text('@${userModel.username ?? 'unknown'}'),
+                      title: Text(userModel.name),
+                      subtitle: Text('@${userModel.username}'),
                       trailing: userModel.isOnline == true
                           ? const Icon(Icons.circle,
                               size: 12, color: Colors.green)

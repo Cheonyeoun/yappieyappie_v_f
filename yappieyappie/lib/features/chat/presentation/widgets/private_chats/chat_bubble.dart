@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:yappieyappie/core/theme/chat/chat_theme.dart';
 import 'package:yappieyappie/models/profile/user_model.dart';
 import 'package:yappieyappie/models/chat/message_model.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class ChatBubble extends StatelessWidget {
   final MessageModel msg;
@@ -33,8 +32,6 @@ class ChatBubble extends StatelessWidget {
     final time = msg.timestamp != null
         ? TimeOfDay.fromDateTime(msg.timestamp!).format(context)
         : '';
-
-    final currentUid = FirebaseAuth.instance.currentUser?.uid;
 
     // Determine seen status
     final otherUid = otherUser.uid; // the other person's UID

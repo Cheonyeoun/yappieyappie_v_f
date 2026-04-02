@@ -1,0 +1,31 @@
+Unread Count Sync Fix Note (Chat List)
+Date: 2026-04-02
+
+Issue observed:
+- If user is already inside a private chat, then backgrounds/minimizes app, receives a new message, and resumes the app into the same chat, message-level seen state looked correct but chat-list unread badge/count did not clear immediately.
+- User often had to re-open/navigate again before unread count looked correct in chat list.
+
+Root cause:
+- Seen state and chat-list unread metadata were not always updated together in the same atomic flow.
+- On app resume while still in the same chat screen, unread reset was not guaranteed to run at the right moment.
+
+What was changed:
+1) Chat service synchronization
+   File: lib/services/chat/chat_service.dart
+   - markAsSeen(...) now updates BOTH:
+     a) message document -> seenBy
+     b) chat document -> unreadCounts.<currentUid> = 0
+   - Done in one Firestore batch commit so read-state + unread-state stay consistent.
+
+2) Chat screen lifecycle handling
+   File: lib/features/chat/presentation/screens/private_chat_screen.dart
+   - Added WidgetsBindingObserver in the chat screen state.
+   - On chat open (initState), markAsRead(roomId) is called.
+   - On app resume (didChangeAppLifecycleState -> resumed), markAsRead(roomId) is called again while still on same chat.
+   - This covers the exact minimize/resume scenario.
+
+Result:
+- Unread count in chat list now clears promptly when user is actually viewing the chat, including after resuming from background.
+
+Notes:
+- Device logs like mali_gralloc format warnings are graphics/driver level and unrelated to unread-count business logic.
