@@ -37,7 +37,7 @@ class _AppLifecycleObserverState extends State<AppLifecycleObserver>
     } else {
       // Handles Paused, Inactive, and Detached
       doc.update(
-          {'isOnline': false, 'lastActive': FieldValue.serverTimestamp()});
+          {'isOnline': false, 'lastActive': FieldValue.serverTimestamp(), 'currentChatId': null});
     }
   }
 

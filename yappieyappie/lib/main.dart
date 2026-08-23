@@ -5,12 +5,16 @@ import 'services/router/app_router.dart';
 import 'core/theme/core/app_theme.dart';
 import 'firebase_options.dart';
 import 'core/utils/core/app_lifecycle_observer.dart';
+import 'services/notifications/push_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Initialize push notifications securely
+  await PushService.instance.initialize();
 
   runApp(
     const ProviderScope(

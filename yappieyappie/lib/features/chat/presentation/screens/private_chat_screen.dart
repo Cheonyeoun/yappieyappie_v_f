@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:yappieyappie/models/profile/user_model.dart';
 import 'package:yappieyappie/services/providers/chat/chat_provider.dart';
 import 'package:yappieyappie/services/providers/chat/chat_selection_provider.dart';
@@ -31,6 +33,21 @@ class _PrivateChatScreenState extends ConsumerState<PrivateChatScreen>
 
     // Mark as read immediately when entering the chat.
     ref.read(chatServiceProvider).markAsRead(_roomId);
+
+    // Sync active chat presence to Firestore to suppress notifications
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      FirebaseFirestore.instance.collection('users').doc(uid).update({'currentChatId': _roomId});
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      FirebaseFirestore.instance.collection('users').doc(uid).update({'currentChatId': _roomId});
+    }
   }
 
   @override
@@ -45,6 +62,13 @@ class _PrivateChatScreenState extends ConsumerState<PrivateChatScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _messageController.dispose();
+    
+    // Clear active chat presence
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      FirebaseFirestore.instance.collection('users').doc(uid).update({'currentChatId': null});
+    }
+
     super.dispose();
   }
 

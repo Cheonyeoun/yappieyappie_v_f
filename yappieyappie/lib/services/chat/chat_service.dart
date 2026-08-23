@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -61,7 +63,7 @@ class ChatService {
     final chatRef = _db.collection('chats').doc(chatRoomId);
 
     // 1. Save the actual message
-    await chatRef.collection('messages').add({
+    final msgRef = await chatRef.collection('messages').add({
       'text': text.trim(),
       'senderId': currentUid,
       'receiverId': otherUid, // Added for notification purposes
@@ -87,7 +89,28 @@ class ChatService {
       'unreadCounts.$currentUid': 0,
     });
 
-    // Message sent successfully
+    // 3. Trigger Vercel Ping
+    await _sendNotificationPing(otherUid, chatRoomId, msgRef.id, 'text');
+  }
+
+  Future<void> _sendNotificationPing(String receiverId, String chatId, String messageId, String type) async {
+    try {
+      // NOTE: Replace with the actual Vercel Preview/Production URL once deployed
+      final url = Uri.parse('https://v-qnxgqyei1-vigneshs-projects-e20bbdb3.vercel.app/api/ping');
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'receiverId': receiverId,
+          'chatId': chatId,
+          'messageId': messageId,
+          'type': type,
+        }),
+      );
+      debugPrint('Vercel Ping Response: ${response.statusCode} - ${response.body}');
+    } catch (e) {
+      debugPrint('Error triggering Vercel ping: $e');
+    }
   }
 
   // Delete for current user only
