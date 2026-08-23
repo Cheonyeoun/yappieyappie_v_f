@@ -96,7 +96,7 @@ class ChatService {
   Future<void> _sendNotificationPing(String receiverId, String chatId, String messageId, String type) async {
     try {
       // NOTE: Replace with the actual Vercel Preview/Production URL once deployed
-      final url = Uri.parse('https://v-qnxgqyei1-vigneshs-projects-e20bbdb3.vercel.app/api/ping');
+      final url = Uri.parse('https://v-fq5jr0hz8-vigneshs-projects-e20bbdb3.vercel.app/api/ping');
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
