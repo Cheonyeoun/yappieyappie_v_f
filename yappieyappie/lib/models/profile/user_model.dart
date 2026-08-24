@@ -25,6 +25,16 @@ class UserModel {
     this.profileimg,
   });
 
+  // Accurate presence check that handles force-killed apps
+  bool get isActuallyOnline {
+    if (!isOnline) return false;
+    if (lastActive == null) return false;
+    
+    // If the last active timestamp is older than 5 minutes, consider them offline.
+    final difference = DateTime.now().difference(lastActive!);
+    return difference.inMinutes < 5;
+  }
+
   // Convert to Firestore Map
   Map<String, dynamic> toMap() {
     return {

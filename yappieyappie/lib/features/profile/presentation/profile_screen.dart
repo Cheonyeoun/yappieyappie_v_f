@@ -97,14 +97,14 @@ class ProfileScreen extends ConsumerWidget {
                     Icon(
                       Icons.circle,
                       size: 14,
-                      color: displayUser.isOnline ? Colors.green : Colors.grey,
+                      color: displayUser.isActuallyOnline ? Colors.green : Colors.grey,
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      displayUser.isOnline ? "Online" : "Last seen recently",
+                      displayUser.isActuallyOnline ? "Online" : "Last seen recently",
                       style: TextStyle(
                         color:
-                            displayUser.isOnline ? Colors.green : Colors.grey,
+                            displayUser.isActuallyOnline ? Colors.green : Colors.grey,
                       ),
                     ),
                   ],

@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:yappieyappie/models/profile/user_model.dart';
 import 'package:yappieyappie/services/providers/chat/chat_provider.dart';
 import 'package:yappieyappie/services/providers/chat/chat_selection_provider.dart';
+import 'package:yappieyappie/core/globals/app_globals.dart';
 
 import 'package:yappieyappie/features/chat/presentation/widgets/private_chats/chat_app_bar.dart';
 import 'package:yappieyappie/features/chat/presentation/widgets/private_chats/chat_messages_list.dart';
@@ -34,20 +35,14 @@ class _PrivateChatScreenState extends ConsumerState<PrivateChatScreen>
     // Mark as read immediately when entering the chat.
     ref.read(chatServiceProvider).markAsRead(_roomId);
 
-    // Sync active chat presence to Firestore to suppress notifications
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid != null) {
-      FirebaseFirestore.instance.collection('users').doc(uid).update({'currentChatId': _roomId});
-    }
+    // Sync active chat presence locally to natively suppress OneSignal popups
+    AppGlobals.activeChatId = _roomId;
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid != null) {
-      FirebaseFirestore.instance.collection('users').doc(uid).update({'currentChatId': _roomId});
-    }
+    AppGlobals.activeChatId = _roomId;
   }
 
   @override
@@ -63,11 +58,8 @@ class _PrivateChatScreenState extends ConsumerState<PrivateChatScreen>
     WidgetsBinding.instance.removeObserver(this);
     _messageController.dispose();
     
-    // Clear active chat presence
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid != null) {
-      FirebaseFirestore.instance.collection('users').doc(uid).update({'currentChatId': null});
-    }
+    // Clear active chat presence locally
+    AppGlobals.activeChatId = null;
 
     super.dispose();
   }

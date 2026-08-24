@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'dart:async';
 
 class AppLifecycleObserver extends StatefulWidget {
   final Widget child;
@@ -12,32 +13,52 @@ class AppLifecycleObserver extends StatefulWidget {
 
 class _AppLifecycleObserverState extends State<AppLifecycleObserver>
     with WidgetsBindingObserver {
+  Timer? _heartbeatTimer;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _startHeartbeat();
+  }
+
+  void _startHeartbeat() {
+    _updatePresence(true);
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = Timer.periodic(const Duration(minutes: 2), (timer) {
+      _updatePresence(true);
+    });
+  }
+
+  void _stopHeartbeat() {
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = null;
+  }
+
+  void _updatePresence(bool isOnline) {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    
+    FirebaseFirestore.instance.collection('users').doc(uid).update({
+      'isOnline': isOnline,
+      'lastActive': FieldValue.serverTimestamp(),
+    }).catchError((_) {}); // Ignore errors if not logged in or offline
   }
 
   @override
   void dispose() {
+    _stopHeartbeat();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
-
-    final doc = FirebaseFirestore.instance.collection('users').doc(uid);
-
     if (state == AppLifecycleState.resumed) {
-      doc.update(
-          {'isOnline': true, 'lastActive': FieldValue.serverTimestamp()});
+      _startHeartbeat();
     } else {
-      // Handles Paused, Inactive, and Detached
-      doc.update(
-          {'isOnline': false, 'lastActive': FieldValue.serverTimestamp(), 'currentChatId': null});
+      _stopHeartbeat();
+      _updatePresence(false);
     }
   }
 

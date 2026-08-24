@@ -6,15 +6,19 @@ import 'core/theme/core/app_theme.dart';
 import 'firebase_options.dart';
 import 'core/utils/core/app_lifecycle_observer.dart';
 import 'services/notifications/push_service.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  await dotenv.load(fileName: ".env");
+
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // Initialize push notifications securely
-  await PushService.instance.initialize();
+  // Initialize push notifications asynchronously so it DOES NOT block runApp()
+  PushService.instance.initialize();
 
   runApp(
     const ProviderScope(

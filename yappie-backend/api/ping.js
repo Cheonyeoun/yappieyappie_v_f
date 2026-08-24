@@ -93,6 +93,9 @@ module.exports = async function handler(req, res) {
       },
       android: {
         priority: "high", // Guarantees instant wake up from Doze mode
+        notification: {
+          channelId: "high_importance_channel",
+        },
       },
       apns: {
         payload: {

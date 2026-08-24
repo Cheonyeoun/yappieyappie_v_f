@@ -1,95 +1,101 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:yappieyappie/core/globals/app_globals.dart';
+import 'package:yappieyappie/services/router/app_router.dart';
+import 'package:yappieyappie/models/profile/user_model.dart';
+import 'package:yappieyappie/features/chat/presentation/screens/private_chat_screen.dart';
 
 class PushService {
   static final PushService instance = PushService._internal();
-  final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FlutterLocalNotificationsPlugin _localNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
   PushService._internal();
 
   Future<void> initialize() async {
     try {
-      // 1. Request permissions for Android 13+ and iOS
-      NotificationSettings settings = await _messaging.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
-
-      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-        debugPrint('User granted push notification permissions.');
-        
-        // 2. Get the FCM token and save it
-        String? token = await _messaging.getToken();
-        if (token != null) {
-          await _saveTokenToFirestore(token);
-        }
-
-        // 3. Listen for token refreshes
-        _messaging.onTokenRefresh.listen((newToken) {
-          _saveTokenToFirestore(newToken);
-        });
-
-        // 4. Setup Foreground Notification display
-        await _setupForegroundNotifications();
-
+      // 1. Initialize OneSignal
+      final appId = dotenv.env['ONESIGNAL_APP_ID'];
+      if (appId != null) {
+        OneSignal.initialize(appId);
       } else {
-        debugPrint('User declined push notification permissions.');
+        debugPrint("Error: ONESIGNAL_APP_ID not found in .env");
       }
+
+      // 2. Request Notification Permissions
+      OneSignal.Notifications.requestPermission(true);
+
+      // 3. Save Player ID to Firestore when user logs in
+      final uid = _auth.currentUser?.uid;
+      if (uid != null) {
+        OneSignal.login(uid); // Associates OneSignal ID with Firebase UID
+        
+        // Wait briefly for OneSignal to generate the Player ID
+        await Future.delayed(const Duration(seconds: 1));
+        final pushSubscriptionId = OneSignal.User.pushSubscription.id;
+        
+        if (pushSubscriptionId != null) {
+          await _saveTokenToFirestore(pushSubscriptionId);
+        }
+      }
+
+      // 4. Native Local Suppression (The Magic)
+      // This listener catches the push before it displays on screen.
+      OneSignal.Notifications.addForegroundWillDisplayListener((event) {
+        final additionalData = event.notification.additionalData;
+        
+        // If the push is for the chat we are currently looking at, SUPPRESS IT NATIVELY
+        if (additionalData != null && additionalData['chatId'] == AppGlobals.activeChatId) {
+          event.preventDefault(); 
+          debugPrint("OneSignal: Natively Suppressed notification for active chat.");
+        } else {
+          // Allow it to display as a Heads-Up banner
+          event.notification.display();
+        }
+      });
+
+      // 5. Deep Linking (Tap-to-Open)
+      // When a user taps the notification, route them to the specific chat.
+      OneSignal.Notifications.addClickListener((event) async {
+        final additionalData = event.notification.additionalData;
+        if (additionalData != null) {
+          final senderId = additionalData['senderId'] as String?;
+          if (senderId != null) {
+            try {
+              final userDoc = await _db.collection('users').doc(senderId).get();
+              if (userDoc.exists) {
+                final userMap = userDoc.data()!;
+                userMap['uid'] = userDoc.id; // Ensure uid is present for fromMap
+                final user = UserModel.fromMap(userMap);
+                
+                // If the app is already fully loaded in the background, push immediately.
+                // Otherwise, save it to pendingChatUser so HomeScreen can push it once Splash is done.
+                if (AppGlobals.isAppReady && rootNavigatorKey.currentContext != null) {
+                  Navigator.push(
+                    rootNavigatorKey.currentContext!,
+                    MaterialPageRoute(
+                      builder: (_) => PrivateChatScreen(otherUser: user),
+                    ),
+                  );
+                } else {
+                  AppGlobals.pendingChatUser = user;
+                  debugPrint("OneSignal: Saved pending deep link for cold boot.");
+                }
+              }
+            } catch (e) {
+              debugPrint('Error navigating to chat: $e');
+            }
+          }
+        }
+      });
+
     } catch (e) {
-      debugPrint('Error initializing PushService: $e');
+      debugPrint('Error initializing OneSignal: $e');
     }
-  }
-
-  Future<void> _setupForegroundNotifications() async {
-    const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
-    const InitializationSettings initializationSettings = InitializationSettings(
-      android: initializationSettingsAndroid,
-    );
-    
-    await _localNotificationsPlugin.initialize(initializationSettings);
-
-    const AndroidNotificationChannel channel = AndroidNotificationChannel(
-      'high_importance_channel', // id
-      'High Importance Notifications', // title
-      description: 'This channel is used for important notifications.', // description
-      importance: Importance.max,
-    );
-
-    await _localNotificationsPlugin
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(channel);
-
-    // Listen to messages while app is in the foreground
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      final notification = message.notification;
-      final android = message.notification?.android;
-
-      if (notification != null && android != null) {
-        _localNotificationsPlugin.show(
-          notification.hashCode,
-          notification.title,
-          notification.body,
-          NotificationDetails(
-            android: AndroidNotificationDetails(
-              channel.id,
-              channel.name,
-              channelDescription: channel.description,
-              icon: '@mipmap/ic_launcher',
-              priority: Priority.high,
-              importance: Importance.max,
-            ),
-          ),
-        );
-      }
-    });
   }
 
   Future<void> _saveTokenToFirestore(String token) async {
@@ -97,16 +103,13 @@ class PushService {
     if (uid == null) return;
 
     try {
-      await _db.collection('users').doc(uid).update({
-        'fcmTokens': FieldValue.arrayUnion([token])
-      });
-      debugPrint('FCM Token securely saved to Firestore.');
-    } catch (e) {
-      debugPrint('Error saving FCM token: $e');
-      // If document doesn't have the field yet, set with merge
+      // Save OneSignal Player ID to Firestore so other clients can ping it directly
       await _db.collection('users').doc(uid).set({
-        'fcmTokens': FieldValue.arrayUnion([token])
+        'oneSignalPlayerId': token
       }, SetOptions(merge: true));
+      debugPrint('OneSignal Player ID securely saved to Firestore.');
+    } catch (e) {
+      debugPrint('Error saving OneSignal token: $e');
     }
   }
 }
