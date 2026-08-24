@@ -26,11 +26,14 @@ class GoRouterRefreshStream extends ChangeNotifier {
   }
 }
 
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
+
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
   final showSplashOnce = ref.watch(splashScreenProvider);
 
   return GoRouter(
+    navigatorKey: rootNavigatorKey,
     // Always start on splash
     initialLocation: '/splash',
 

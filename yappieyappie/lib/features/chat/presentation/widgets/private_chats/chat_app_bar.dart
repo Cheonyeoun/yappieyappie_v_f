@@ -71,10 +71,10 @@ class ChatAppBar extends ConsumerWidget implements PreferredSizeWidget {
                         ),
                         if (user.showOnlineStatus)
                           Text(
-                            user.isOnline ? "Active now" : "Offline",
+                            user.isActuallyOnline ? "Active now" : "Offline",
                             style: TextStyle(
                               fontSize: 11,
-                              color: user.isOnline
+                              color: user.isActuallyOnline
                                   ? Colors.greenAccent
                                   : Colors.grey,
                             ),

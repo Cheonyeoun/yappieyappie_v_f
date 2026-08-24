@@ -113,7 +113,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       ),
                       title: Text(userModel.name),
                       subtitle: Text('@${userModel.username}'),
-                      trailing: userModel.isOnline == true
+                      trailing: userModel.isActuallyOnline
                           ? const Icon(Icons.circle,
                               size: 12, color: Colors.green)
                           : null,

@@ -1,6 +1,9 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ChatService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -61,7 +64,7 @@ class ChatService {
     final chatRef = _db.collection('chats').doc(chatRoomId);
 
     // 1. Save the actual message
-    await chatRef.collection('messages').add({
+    final msgRef = await chatRef.collection('messages').add({
       'text': text.trim(),
       'senderId': currentUid,
       'receiverId': otherUid, // Added for notification purposes
@@ -87,7 +90,82 @@ class ChatService {
       'unreadCounts.$currentUid': 0,
     });
 
-    // Message sent successfully
+    // 3. Trigger OneSignal Direct Push
+    await _sendNotificationPing(otherUid, chatRoomId, currentUid, chatRef);
+  }
+
+  Future<void> _sendNotificationPing(String receiverId, String chatId, String senderId, DocumentReference chatRef) async {
+    try {
+      // 1. Get Receiver's OneSignal Player ID
+      final receiverDoc = await _db.collection('users').doc(receiverId).get();
+      if (!receiverDoc.exists) return;
+      
+      final receiverData = receiverDoc.data();
+      final oneSignalPlayerId = receiverData?['oneSignalPlayerId'];
+      if (oneSignalPlayerId == null) return;
+
+      // 2. Get Sender's Info (Name & Avatar)
+      final senderDoc = await _db.collection('users').doc(senderId).get();
+      final senderData = senderDoc.data();
+      final senderName = senderData?['name'] ?? 'Someone';
+      final senderAvatar = senderData?['profileimg'];
+
+      // 3. Get Receiver's new unread count from the server (bypassing local cache for accuracy)
+      final chatDoc = await chatRef.get(const GetOptions(source: Source.server));
+      int unreadCount = 0;
+      if (chatDoc.exists) {
+        final chatData = chatDoc.data() as Map<String, dynamic>?;
+        if (chatData != null && chatData['unreadCounts'] != null) {
+          unreadCount = chatData['unreadCounts'][receiverId] ?? 0;
+        }
+      }
+      
+      // Calculate abstract text based on unread count
+      String abstractMessage;
+      if (unreadCount <= 1) {
+        abstractMessage = 'Sent you a new message';
+      } else if (unreadCount > 8) {
+        abstractMessage = '8+ new messages';
+      } else {
+        abstractMessage = '$unreadCount new messages';
+      }
+
+      // 4. Fire Direct HTTP request to OneSignal
+      final appId = dotenv.env['ONESIGNAL_APP_ID'];
+      final restApiKey = dotenv.env['ONESIGNAL_REST_API_KEY'];
+      
+      if (appId == null || restApiKey == null) {
+        debugPrint("Error: Missing OneSignal keys in .env");
+        return;
+      }
+
+      final url = Uri.parse('https://onesignal.com/api/v1/notifications');
+      final body = <String, dynamic>{
+        'app_id': appId,
+        'include_player_ids': [oneSignalPlayerId],
+        'headings': {'en': senderName},
+        'contents': {'en': abstractMessage},
+        'data': {'chatId': chatId, 'senderId': senderId}, // Used by local suppression & deep linking
+        'collapse_id': chatId, // Group and replace notifications PER PERSON, not globally
+        'android_accent_color': 'FF7289DA', // A nice aesthetic brand color tint
+      };
+
+      if (senderAvatar != null && senderAvatar.isNotEmpty) {
+        body['large_icon'] = senderAvatar; // Displays the sender's face!
+      }
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Authorization': 'Basic $restApiKey',
+        },
+        body: jsonEncode(body),
+      );
+      debugPrint('OneSignal Direct Ping Response: ${response.statusCode} - ${response.body}');
+    } catch (e) {
+      debugPrint('Error triggering OneSignal direct ping: $e');
+    }
   }
 
   // Delete for current user only
