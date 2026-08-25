@@ -94,6 +94,36 @@ class ChatService {
     await _sendNotificationPing(otherUid, chatRoomId, currentUid, chatRef);
   }
 
+  // Logs a call event in the chat history
+  Future<void> sendCallMessage(String otherUid, {required String status, int duration = 0}) async {
+    final currentUid = _auth.currentUser?.uid;
+    if (currentUid == null) return;
+
+    final chatRoomId = getChatRoomId(otherUid);
+    final chatRef = _db.collection('chats').doc(chatRoomId);
+
+    // Save special call message
+    await chatRef.collection('messages').add({
+      'type': 'call',
+      'status': status, // 'completed', 'missed', 'declined'
+      'duration': duration,
+      'senderId': currentUid,
+      'receiverId': otherUid,
+      'timestamp': FieldValue.serverTimestamp(),
+      'deletedFor': [],
+      'isDeletedForEveryone': false,
+      'seenBy': [],
+    });
+
+    // Update metadata but maybe don't ping notification for just a log
+    await chatRef.set({
+      'lastMessage': status == 'missed' ? 'Missed Call' : 'Voice Call',
+      'lastMessageTime': FieldValue.serverTimestamp(),
+      'lastSenderId': currentUid,
+      'participants': [currentUid, otherUid],
+    }, SetOptions(merge: true));
+  }
+
   Future<void> _sendNotificationPing(String receiverId, String chatId, String senderId, DocumentReference chatRef) async {
     try {
       // 1. Get Receiver's OneSignal Player ID

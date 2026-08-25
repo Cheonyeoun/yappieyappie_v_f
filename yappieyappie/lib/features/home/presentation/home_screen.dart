@@ -8,6 +8,7 @@ import 'package:yappieyappie/features/search/presentation/search_screen.dart';
 import 'package:yappieyappie/core/globals/app_globals.dart';
 import 'package:yappieyappie/features/chat/presentation/screens/private_chat_screen.dart';
 
+
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -35,6 +36,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         );
       }
+      
     });
   }
 

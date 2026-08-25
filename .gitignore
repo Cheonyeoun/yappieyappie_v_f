@@ -46,3 +46,6 @@ app.*.map.json
 linux/flutter/generated_*
 windows/flutter/generated_*
 macos/Flutter/GeneratedPluginRegistrant.swift
+
+outputs/
+*.apk
