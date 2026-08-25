@@ -60,45 +60,43 @@ class ChatBubble extends StatelessWidget {
               // 💬 MESSAGE BUBBLE
               ConstrainedBox(
                 constraints: BoxConstraints(maxWidth: screenWidth * 0.745),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: isMe ? theme.myBubble : theme.otherBubble,
-                    borderRadius: BorderRadius.only(
-                      topLeft: isMe ? round : tail,
-                      topRight: isMe ? tail : round,
-                      bottomLeft: isMe ? round : round,
-                      bottomRight: isMe ? round : round,
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      // 📝 MESSAGE TEXT
-                      Text(
-                        msg.text,
-                        style: TextStyle(
-                          color: isMe ? theme.myText : theme.otherText,
-                          fontSize: 15,
-                          height: 1.4,
+                child: msg.type == 'call'
+                    ? _buildCallBubble(context, isMe, msg, theme, time)
+                    : Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: isMe ? theme.myBubble : theme.otherBubble,
+                          borderRadius: BorderRadius.only(
+                            topLeft: isMe ? round : tail,
+                            topRight: isMe ? tail : round,
+                            bottomLeft: isMe ? round : round,
+                            bottomRight: isMe ? round : round,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              msg.text,
+                              style: TextStyle(
+                                color: isMe ? theme.myText : theme.otherText,
+                                fontSize: 15,
+                                height: 1.4,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              time,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: (isMe ? theme.myText : theme.otherText)
+                                    .withOpacity(0.6),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-
-                      const SizedBox(height: 4),
-
-                      // ⏱ TIME
-                      Text(
-                        time,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: (isMe ? theme.myText : theme.otherText)
-                              .withOpacity(0.6),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ),
               if (isSelectionMode && isMe)
                 Padding(
@@ -124,6 +122,73 @@ class ChatBubble extends StatelessWidget {
                 ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCallBubble(BuildContext context, bool isMe, MessageModel msg, ChatTheme theme, String time) {
+    final isMissed = msg.status == 'missed';
+    final durationStr = msg.duration != null && msg.duration! > 0
+        ? "${msg.duration! ~/ 60}m ${msg.duration! % 60}s"
+        : null;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: isMe ? theme.myBubble : theme.otherBubble,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isMissed ? Colors.redAccent.withOpacity(0.5) : Colors.transparent,
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isMissed ? Icons.phone_missed : Icons.phone_in_talk,
+                color: isMissed ? Colors.redAccent : (isMe ? theme.myText : theme.otherText),
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                isMissed ? "Missed Call" : "Voice Call",
+                style: TextStyle(
+                  color: isMe ? theme.myText : theme.otherText,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (durationStr != null) ...[
+                Text(
+                  durationStr,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: (isMe ? theme.myText : theme.otherText).withOpacity(0.8),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              Text(
+                time,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: (isMe ? theme.myText : theme.otherText).withOpacity(0.6),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );

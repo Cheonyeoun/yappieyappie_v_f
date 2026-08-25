@@ -3,8 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yappieyappie/features/profile/presentation/profile_screen.dart';
 import 'package:yappieyappie/models/profile/user_model.dart';
 import 'package:yappieyappie/services/providers/profile/user_provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:yappieyappie/services/providers/chat/chat_selection_provider.dart';
 import 'package:yappieyappie/services/providers/chat/chat_provider.dart';
+import 'package:yappieyappie/services/call/callkit_service.dart';
+import 'package:yappieyappie/controllers/call/call_controller.dart';
+import 'package:yappieyappie/features/call/presentation/livekit_call_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class ChatAppBar extends ConsumerWidget implements PreferredSizeWidget {
@@ -168,7 +172,40 @@ class ChatAppBar extends ConsumerWidget implements PreferredSizeWidget {
                 error: (_, __) => const SizedBox(),
               ),
             ]
-          : [],
+          : [
+              userAsync.when(
+                data: (user) {
+                  return IconButton(
+                    icon: const Icon(Icons.call, color: Colors.white),
+                    onPressed: () async {
+                      // Fetch current user name
+                      String currentUserName = "Your friend";
+                      try {
+                        final currentDoc = await FirebaseFirestore.instance.collection('users').doc(currentUid).get();
+                        if (currentDoc.exists && currentDoc.data() != null) {
+                          currentUserName = currentDoc.data()!['name'] ?? currentUserName;
+                        }
+                      } catch (e) {
+                        debugPrint("Failed to fetch caller name: $e");
+                      }
+                      
+                      if (context.mounted) {
+                        ref.read(callControllerProvider.notifier).initiateCall(
+                          receiverId: user.uid,
+                          receiverName: user.name.isNotEmpty ? user.name : 'Unknown',
+                          receiverAvatar: user.profileimg,
+                          callerId: currentUid!,
+                          callerName: currentUserName,
+                        );
+                      }
+                    },
+                  );
+                },
+                loading: () => const SizedBox(),
+                error: (_, __) => const SizedBox(),
+              ),
+              const SizedBox(width: 8),
+            ],
     );
   }
 

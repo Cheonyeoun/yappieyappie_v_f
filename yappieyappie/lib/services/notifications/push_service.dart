@@ -1,3 +1,4 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
@@ -13,6 +14,7 @@ class PushService {
   static final PushService instance = PushService._internal();
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseMessaging _fcm = FirebaseMessaging.instance;
 
   PushService._internal();
 
@@ -41,6 +43,16 @@ class PushService {
         if (pushSubscriptionId != null) {
           await _saveTokenToFirestore(pushSubscriptionId);
         }
+        
+        // Also get FCM token for CallKit (background VoIP/Data pushes)
+        final fcmToken = await _fcm.getToken();
+        if (fcmToken != null) {
+          await _saveFCMTokenToFirestore(fcmToken);
+        }
+        
+        _fcm.onTokenRefresh.listen((newToken) {
+           _saveFCMTokenToFirestore(newToken);
+        });
       }
 
       // 4. Native Local Suppression (The Magic)
@@ -103,13 +115,25 @@ class PushService {
     if (uid == null) return;
 
     try {
-      // Save OneSignal Player ID to Firestore so other clients can ping it directly
       await _db.collection('users').doc(uid).set({
         'oneSignalPlayerId': token
       }, SetOptions(merge: true));
-      debugPrint('OneSignal Player ID securely saved to Firestore.');
     } catch (e) {
       debugPrint('Error saving OneSignal token: $e');
+    }
+  }
+
+  Future<void> _saveFCMTokenToFirestore(String token) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
+
+    try {
+      await _db.collection('users').doc(uid).set({
+        'fcmToken': token
+      }, SetOptions(merge: true));
+      debugPrint('FCM Token securely saved to Firestore for calls.');
+    } catch (e) {
+      debugPrint('Error saving FCM token: $e');
     }
   }
 }

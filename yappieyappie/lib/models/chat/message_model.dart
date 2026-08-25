@@ -11,6 +11,10 @@ class MessageModel {
   final bool isDeletedForEveryone;
   final List<String> seenBy;
 
+  final String? type;
+  final String? status;
+  final int? duration;
+
   MessageModel({
     required this.id,
     required this.text,
@@ -19,6 +23,9 @@ class MessageModel {
     this.deletedFor = const [],
     this.isDeletedForEveryone = false,
     this.seenBy = const [],
+    this.type,
+    this.status,
+    this.duration,
   });
 
   // Convert Firestore → Model
@@ -35,6 +42,9 @@ class MessageModel {
       deletedFor: List<String>.from(map['deletedFor'] ?? []),
       isDeletedForEveryone: map['isDeletedForEveryone'] ?? false,
       seenBy: List<String>.from(map['seenBy'] ?? []),
+      type: map['type'],
+      status: map['status'],
+      duration: map['duration'],
     );
   }
 

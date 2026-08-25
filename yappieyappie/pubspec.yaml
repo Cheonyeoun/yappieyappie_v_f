@@ -20,7 +20,13 @@ dependencies:
   uuid: ^4.5.3
   app_settings: ^7.0.0
   flutter_dotenv: ^6.0.1
-
+  permission_handler: ^13.0.1
+  livekit_client: ^2.11.0
+  dart_jsonwebtoken: ^3.4.1
+  http: ^1.6.0
+  flutter_callkit_incoming: ^3.1.5
+  googleapis_auth: ^2.3.3
+  audioplayers: ^6.8.1
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -31,13 +37,13 @@ flutter:
   uses-material-design: true
   assets:
     - .env
+    - assets/audio/
 
 flutter_icons:
   android: true
   # ios: true
   image_path_android: "assets/icon/image.png"
   # image_path_ios: "assets/icon/ios_icon.png"
-
 
 
 

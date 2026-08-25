@@ -10,7 +10,7 @@ plugins {
 
 android {
     namespace = "com.vp1413.yappie"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
